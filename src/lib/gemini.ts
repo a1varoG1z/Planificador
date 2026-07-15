@@ -2,7 +2,7 @@ import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-
 import type { CareProfileDraft } from './types';
 import type { PerenualHints } from './perenual';
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 function getModel(schema?: Schema) {
   const apiKey = process.env.GEMINI_API_KEY;
