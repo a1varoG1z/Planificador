@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { fetchImageAsBase64 } from '@/lib/imageFetch';
 import { assessPlantHealth } from '@/lib/plantid';
-import { generateRemedies } from '@/lib/gemini';
+import { diagnoseWithGemini, generateRemedies } from '@/lib/gemini';
 
 export async function POST(request: Request) {
   const supabase = createClient();
@@ -16,28 +16,47 @@ export async function POST(request: Request) {
 
   try {
     const base64 = await fetchImageAsBase64(photoUrl);
-    const assessment = await assessPlantHealth(base64);
 
+    let isHealthy: boolean;
+    let summary: string;
     let remediesCommercial: string | null = null;
     let remediesHome: string | null = null;
-    let summary = 'La planta parece sana, no se han detectado problemas relevantes.';
+    let diagnosisDetails: unknown;
+    let plantIdError: string | null = null;
 
-    const topDisease = assessment.diseases.sort((a, b) => b.probability - a.probability)[0];
+    try {
+      // Plant.id da un diagnostico mas fiable, pero su free tier solo trae 100 creditos.
+      const assessment = await assessPlantHealth(base64);
+      const topDisease = assessment.diseases.sort((a, b) => b.probability - a.probability)[0];
 
-    if (!assessment.isHealthy && topDisease) {
-      summary = `Posible problema detectado: ${topDisease.name} (confianza ${Math.round(topDisease.probability * 100)}%).`;
-      const remedies = await generateRemedies({
-        diseaseName: topDisease.name,
-        description: topDisease.description,
-        cause: topDisease.cause,
-        plantnitTreatment: {
-          biological: topDisease.treatmentBiological,
-          chemical: topDisease.treatmentChemical,
-          prevention: topDisease.treatmentPrevention,
-        },
-      });
-      remediesCommercial = remedies.commercial;
-      remediesHome = remedies.home;
+      isHealthy = assessment.isHealthy;
+      summary = 'La planta parece sana, no se han detectado problemas relevantes.';
+      diagnosisDetails = { source: 'plantid', ...assessment };
+
+      if (!assessment.isHealthy && topDisease) {
+        summary = `Posible problema detectado: ${topDisease.name} (confianza ${Math.round(topDisease.probability * 100)}%).`;
+        const remedies = await generateRemedies({
+          diseaseName: topDisease.name,
+          description: topDisease.description,
+          cause: topDisease.cause,
+          plantnitTreatment: {
+            biological: topDisease.treatmentBiological,
+            chemical: topDisease.treatmentChemical,
+            prevention: topDisease.treatmentPrevention,
+          },
+        });
+        remediesCommercial = remedies.commercial;
+        remediesHome = remedies.home;
+      }
+    } catch (err) {
+      // Plant.id sin creditos, sin key configurada, o caido: seguimos solo con Gemini vision.
+      plantIdError = (err as Error).message;
+      const aiDiagnosis = await diagnoseWithGemini(base64);
+      isHealthy = aiDiagnosis.isHealthy;
+      summary = `${aiDiagnosis.summary} (diagnostico generado por IA, Plant.id no disponible)`;
+      remediesCommercial = aiDiagnosis.remediesCommercial;
+      remediesHome = aiDiagnosis.remediesHome;
+      diagnosisDetails = { source: 'gemini', plantIdError, ...aiDiagnosis };
     }
 
     const { data: diagnosis, error: insertError } = await supabase
@@ -45,9 +64,9 @@ export async function POST(request: Request) {
       .insert({
         plant_id: plantId || null,
         photo_url: photoUrl,
-        is_healthy: assessment.isHealthy,
+        is_healthy: isHealthy,
         diagnosis_summary: summary,
-        diagnosis_details: assessment,
+        diagnosis_details: diagnosisDetails,
         remedies_commercial: remediesCommercial,
         remedies_home: remediesHome,
       })

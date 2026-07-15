@@ -117,7 +117,9 @@ dashboard de Supabase) y entra.
 9. **Propuestas de mejora**: recomendaciones generadas con IA por planta, basadas en su
    perfil y en el historial reciente de cuidados.
 10. **Diagnostico de enfermedades**: foto -> Plant.id detecta plagas/enfermedades -> Gemini
-    redacta remedios comerciales y caseros.
+    redacta remedios comerciales y caseros. El free tier de Plant.id solo trae 100 creditos:
+    si se agotan (o si dejas `PLANTID_API_KEY` vacia), la app usa automaticamente Gemini
+    (vision) para dar un diagnostico y remedios de respaldo, sin cortar la funcionalidad.
 11. **Identificacion silvestre**: identifica cualquier planta/flor/arbol aunque no sea tuya,
     con opcion de anadirla a uno de tus jardines despues.
 12. **Jardines**: las plantas se organizan y filtran por jardin (terraza, salon, exterior...).

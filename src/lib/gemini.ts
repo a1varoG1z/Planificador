@@ -1,16 +1,16 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-ai';
 import type { CareProfileDraft } from './types';
 import type { PerenualHints } from './perenual';
 
 const MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
-function getModel(jsonMode: boolean) {
+function getModel(schema?: Schema) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('Falta GEMINI_API_KEY en las variables de entorno');
   const genAI = new GoogleGenerativeAI(apiKey);
   return genAI.getGenerativeModel({
     model: MODEL,
-    generationConfig: jsonMode ? { responseMimeType: 'application/json' } : undefined,
+    generationConfig: schema ? { responseMimeType: 'application/json', responseSchema: schema } : undefined,
   });
 }
 
@@ -23,12 +23,75 @@ function parseJson<T>(text: string): T {
   return JSON.parse(cleaned) as T;
 }
 
+// Esquemas de salida: fuerzan a Gemini a devolver siempre los mismos campos,
+// con los mismos tipos, en vez de confiar solo en las instrucciones del prompt.
+const CARE_PROFILE_SCHEMA: Schema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    watering_frequency_days: { type: SchemaType.INTEGER },
+    watering_notes: { type: SchemaType.STRING },
+    fertilizing_frequency_days: { type: SchemaType.INTEGER },
+    fertilizing_notes: { type: SchemaType.STRING },
+    pruning_frequency_days: { type: SchemaType.INTEGER },
+    pruning_notes: { type: SchemaType.STRING },
+    pruning_season: { type: SchemaType.STRING },
+    light_notes: { type: SchemaType.STRING },
+    temperature_min: { type: SchemaType.NUMBER },
+    temperature_max: { type: SchemaType.NUMBER },
+    temperature_notes: { type: SchemaType.STRING },
+    humidity_notes: { type: SchemaType.STRING },
+    soil_notes: { type: SchemaType.STRING },
+    propagation_notes: { type: SchemaType.STRING },
+    flowering_fruit_tips: { type: SchemaType.STRING },
+    toxicity_notes: { type: SchemaType.STRING },
+    life_cycle: { type: SchemaType.STRING, format: 'enum', enum: ['annual', 'biennial', 'perennial'] },
+    replant_month: { type: SchemaType.INTEGER, nullable: true },
+    replanting_notes: { type: SchemaType.STRING },
+  },
+  required: [
+    'watering_frequency_days', 'watering_notes',
+    'fertilizing_frequency_days', 'fertilizing_notes',
+    'pruning_frequency_days', 'pruning_notes', 'pruning_season',
+    'light_notes', 'temperature_min', 'temperature_max', 'temperature_notes',
+    'humidity_notes', 'soil_notes', 'propagation_notes', 'flowering_fruit_tips',
+    'toxicity_notes', 'life_cycle', 'replanting_notes',
+  ],
+};
+
+const RECOMMENDATIONS_SCHEMA: Schema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    recommendations: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+  },
+  required: ['recommendations'],
+};
+
+const REMEDIES_SCHEMA: Schema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    commercial: { type: SchemaType.STRING },
+    home: { type: SchemaType.STRING },
+  },
+  required: ['commercial', 'home'],
+};
+
+const AI_DIAGNOSIS_SCHEMA: Schema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    isHealthy: { type: SchemaType.BOOLEAN },
+    summary: { type: SchemaType.STRING },
+    remediesCommercial: { type: SchemaType.STRING, nullable: true },
+    remediesHome: { type: SchemaType.STRING, nullable: true },
+  },
+  required: ['isHealthy', 'summary'],
+};
+
 export async function generateCareProfile(
   scientificName: string,
   commonName: string | null,
   hints: PerenualHints | null
 ): Promise<CareProfileDraft> {
-  const model = getModel(true);
+  const model = getModel(CARE_PROFILE_SCHEMA);
 
   const hintsBlock = hints
     ? `Datos de referencia de Perenual (usalos como apoyo, pero prioriza tu conocimiento botanico si detectas algo incorrecto):
@@ -42,29 +105,6 @@ Nombre comun: ${commonName ?? 'desconocido'}
 
 ${hintsBlock}
 
-Devuelve EXCLUSIVAMENTE un JSON con esta forma exacta (sin texto adicional, sin markdown):
-{
-  "watering_frequency_days": number,
-  "watering_notes": string,
-  "fertilizing_frequency_days": number,
-  "fertilizing_notes": string,
-  "pruning_frequency_days": number,
-  "pruning_notes": string,
-  "pruning_season": string,
-  "light_notes": string,
-  "temperature_min": number,
-  "temperature_max": number,
-  "temperature_notes": string,
-  "humidity_notes": string,
-  "soil_notes": string,
-  "propagation_notes": string,
-  "flowering_fruit_tips": string,
-  "toxicity_notes": string,
-  "life_cycle": "annual" | "biennial" | "perennial",
-  "replant_month": number | null,
-  "replanting_notes": string
-}
-
 Instrucciones para cada campo:
 - watering_frequency_days / fertilizing_frequency_days / pruning_frequency_days: numero entero de dias entre cada tarea, estimado de forma realista para un hogar en clima templado.
 - pruning_season: epoca del ano recomendada para podar (ej. "final de invierno, antes de brotes nuevos").
@@ -72,7 +112,7 @@ Instrucciones para cada campo:
 - flowering_fruit_tips: consejos concretos para mejorar la floracion o la fructificacion (abonado especifico, poda de formacion, luz, polinizacion manual si aplica).
 - toxicity_notes: si es toxica para personas o mascotas, y que sintomas provoca; si no lo es, indicalo brevemente.
 - life_cycle: "annual" si la planta completa su ciclo y muere en una temporada (ej. tomatera, albahaca), "biennial" si tarda dos temporadas, "perennial" si vive varios anos (arbustos, arboles, plantas de interior, bulbos como el ciclamen). Basate en el dato "cycle" de los datos de referencia si esta disponible.
-- replant_month: SOLO si life_cycle es "annual" o "biennial", indica el numero de mes (1-12) recomendado para volver a plantarla tras el final de su ciclo (ej. semillero de tomate en marzo). Si life_cycle es "perennial", pon null.
+- replant_month: SOLO si life_cycle es "annual" o "biennial", numero de mes (1-12) recomendado para volver a plantarla tras el final de su ciclo (ej. semillero de tomate en marzo). Si life_cycle es "perennial", omitelo (null).
 - replanting_notes: si life_cycle es "annual" o "biennial", 1-2 frases sobre como/cuando replantarla la siguiente temporada. Si es "perennial", explica brevemente que no hace falta replantarla salvo trasplante a maceta mayor.
 - Todos los textos en espanol, tono cercano y practico, 1-3 frases por campo de notas.`;
 
@@ -87,7 +127,7 @@ export async function generateRecommendations(input: {
   missedWaterings: number;
   missedFertilizings: number;
 }): Promise<string[]> {
-  const model = getModel(true);
+  const model = getModel(RECOMMENDATIONS_SCHEMA);
 
   const prompt = `Eres un jardinero experto. Basandote en esta planta y su historial reciente, propon entre 3 y 5 recomendaciones de mejora CONCRETAS y accionables, en espanol, para que crezca mas sana y bonita.
 
@@ -96,7 +136,7 @@ Perfil de cuidados actual: ${JSON.stringify(input.careProfile)}
 Riegos recientes que se han retrasado respecto a lo recomendado: ${input.missedWaterings}
 Abonados recientes que se han retrasado respecto a lo recomendado: ${input.missedFertilizings}
 
-Devuelve EXCLUSIVAMENTE un JSON: { "recommendations": string[] }. Cada string debe ser una recomendacion breve (1-2 frases), especifica para esta planta, no generica.`;
+Cada recomendacion debe ser breve (1-2 frases), especifica para esta planta, no generica.`;
 
   const result = await model.generateContent(prompt);
   const parsed = parseJson<{ recommendations: string[] }>(result.response.text());
@@ -104,7 +144,7 @@ Devuelve EXCLUSIVAMENTE un JSON: { "recommendations": string[] }. Cada string de
 }
 
 export async function generateQuickInfo(scientificName: string, commonName: string | null): Promise<string> {
-  const model = getModel(false);
+  const model = getModel();
 
   const prompt = `Eres un experto en botanica. En espanol, escribe un texto breve (3-4 frases) sobre esta planta encontrada en la naturaleza, pensado para alguien que la acaba de fotografiar en un paseo: donde suele crecer, epoca de floracion si tiene, y algun dato curioso. No repitas el nombre cientifico en el texto mas de una vez.
 
@@ -121,7 +161,7 @@ export async function generateRemedies(input: {
   cause: string | null;
   plantnitTreatment: { biological: string[]; chemical: string[]; prevention: string[] };
 }): Promise<{ commercial: string; home: string }> {
-  const model = getModel(true);
+  const model = getModel(REMEDIES_SCHEMA);
 
   const prompt = `Eres un experto en fitopatologia domestica. Un usuario ha detectado este problema en una planta:
 
@@ -134,8 +174,37 @@ Redacta en espanol dos listas breves de remedios:
 1. "commercial": productos comerciales tipicos (fungicidas, insecticidas, jabon potasico, etc.) que se pueden comprar en un vivero o tienda de jardineria, con como aplicarlos.
 2. "home": remedios caseros (agua con jabon, aceite de neem, bicarbonato, alcohol, etc.) con proporciones aproximadas.
 
-Devuelve EXCLUSIVAMENTE un JSON: { "commercial": string, "home": string }. Cada campo es un texto corrido de 2-4 frases, practico y en espanol.`;
+Cada campo es un texto corrido de 2-4 frases, practico y en espanol.`;
 
   const result = await model.generateContent(prompt);
   return parseJson<{ commercial: string; home: string }>(result.response.text());
+}
+
+export interface AiDiagnosis {
+  isHealthy: boolean;
+  summary: string;
+  remediesCommercial: string | null;
+  remediesHome: string | null;
+}
+
+/**
+ * Diagnostico de plagas/enfermedades usando solo vision de Gemini, sin Plant.id.
+ * Se usa como respaldo cuando Plant.id no esta disponible o se han agotado sus creditos.
+ */
+export async function diagnoseWithGemini(base64Image: string, mimeType = 'image/jpeg'): Promise<AiDiagnosis> {
+  const model = getModel(AI_DIAGNOSIS_SCHEMA);
+
+  const prompt = `Eres un experto en fitopatologia. Observa la foto de esta planta y evalua su estado de salud.
+
+- isHealthy: true si no ves signos claros de plaga, enfermedad o carencia; false si detectas algo (manchas, hojas amarillas/marchitas, insectos, moho, etc.).
+- summary: 1-2 frases en espanol describiendo lo que ves. Si detectas un problema, nombralo (ej. "posible oidio", "araña roja", "clorosis ferrica") dejando claro que es una estimacion visual, no un diagnostico certero.
+- remediesCommercial: SOLO si isHealthy es false, productos comerciales tipicos para tratarlo (fungicida, insecticida, jabon potasico...) con como aplicarlos, en espanol, 2-4 frases. Si isHealthy es true, deja null.
+- remediesHome: SOLO si isHealthy es false, remedios caseros (agua con jabon, aceite de neem, bicarbonato...) con proporciones aproximadas, en espanol, 2-4 frases. Si isHealthy es true, deja null.`;
+
+  const result = await model.generateContent([
+    { inlineData: { data: base64Image, mimeType } },
+    { text: prompt },
+  ]);
+
+  return parseJson<AiDiagnosis>(result.response.text());
 }
