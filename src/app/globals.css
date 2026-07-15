@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: #f8faf8;
+  color: #14532d;
+}
+
+input,
+select,
+textarea {
+  @apply rounded-lg border border-leaf-200 bg-white px-3 py-2 text-sm focus:border-leaf-500 focus:outline-none focus:ring-1 focus:ring-leaf-500;
+}
+
+button {
+  cursor: pointer;
+}
