@@ -28,10 +28,17 @@ historial fotografico, jardines con plantas activas/inactivas y lista de la comp
    registraros, desactivad "Allow new users to sign up" despues de crear las dos cuentas
    (o dejadlo activo, ya que las policies de la base de datos igualmente bloquean a
    cualquier otro correo).
-4. Copia estos valores desde **Project Settings -> API**:
+4. Copia estos valores desde **Project Settings -> API Keys**:
    - `Project URL` -> `NEXT_PUBLIC_SUPABASE_URL`
    - `anon public key` -> `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `service_role key` -> `SUPABASE_SERVICE_ROLE_KEY` (la usa el cron de notificaciones)
+
+   ⚠️ En proyectos nuevos, Supabase ha renombrado estas claves: en vez de "anon
+   public key" veras **Publishable key** (empieza por `sb_publishable_...`), y en
+   vez de "service_role key" veras **Secret keys** (empieza por `sb_secret_...`).
+   Se usan exactamente igual, solo copia esos valores en las mismas variables de
+   arriba (`Publishable key` -> `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `Secret key` ->
+   `SUPABASE_SERVICE_ROLE_KEY`). No hace falta cambiar nada en el codigo.
 
 ## 2. Conseguir las API keys
 
