@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType, type Schema, type GenerativeModel, type Part } from '@google/generative-ai';
 import type { CareProfileDraft } from './types';
 import type { PerenualHints } from './perenual';
 
@@ -12,6 +12,27 @@ function getModel(schema?: Schema) {
     model: MODEL,
     generationConfig: schema ? { responseMimeType: 'application/json', responseSchema: schema } : undefined,
   });
+}
+
+/**
+ * Google devuelve 503 "high demand" o 429 con bastante frecuencia en modelos
+ * nuevos/gratuitos; suelen ser picos temporales, asi que reintentamos un par
+ * de veces con espera creciente antes de rendirnos.
+ */
+async function generateContentWithRetry(model: GenerativeModel, input: string | (string | Part)[], attempts = 3) {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await model.generateContent(input);
+    } catch (err) {
+      lastErr = err;
+      const message = err instanceof Error ? err.message : String(err);
+      const transient = /503|overloaded|high demand|429|rate.?limit|UNAVAILABLE/i.test(message);
+      if (!transient || i === attempts - 1) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 1500 * (i + 1)));
+    }
+  }
+  throw lastErr;
 }
 
 function parseJson<T>(text: string): T {
@@ -123,7 +144,7 @@ Instrucciones para cada campo:
 - bloom_notes: si bloom_month tiene valor, 1-2 frases describiendo que esperar (color, duracion, como favorecerla). Si no aplica, explica brevemente por que (ej. "planta de follaje, sin floracion ornamental relevante").
 - Todos los textos en espanol, tono cercano y practico, 1-3 frases por campo de notas.`;
 
-  const result = await model.generateContent(prompt);
+  const result = await generateContentWithRetry(model, prompt);
   return parseJson<CareProfileDraft>(result.response.text());
 }
 
@@ -147,7 +168,7 @@ Abonados recientes que se han retrasado respecto a lo recomendado: ${input.misse
 
 Ten en cuenta el clima de "${input.location}" (heladas, epoca del ano) si es relevante. Cada recomendacion debe ser breve (1-2 frases), especifica para esta planta, no generica.`;
 
-  const result = await model.generateContent(prompt);
+  const result = await generateContentWithRetry(model, prompt);
   const parsed = parseJson<{ recommendations: string[] }>(result.response.text());
   return parsed.recommendations ?? [];
 }
@@ -160,7 +181,7 @@ export async function generateQuickInfo(scientificName: string, commonName: stri
 Nombre cientifico: ${scientificName}
 Nombre comun: ${commonName ?? 'desconocido'}`;
 
-  const result = await model.generateContent(prompt);
+  const result = await generateContentWithRetry(model, prompt);
   return result.response.text().trim();
 }
 
@@ -185,7 +206,7 @@ Redacta en espanol dos listas breves de remedios:
 
 Cada campo es un texto corrido de 2-4 frases, practico y en espanol.`;
 
-  const result = await model.generateContent(prompt);
+  const result = await generateContentWithRetry(model, prompt);
   return parseJson<{ commercial: string; home: string }>(result.response.text());
 }
 
@@ -210,10 +231,7 @@ export async function diagnoseWithGemini(base64Image: string, mimeType = 'image/
 - remediesCommercial: SOLO si isHealthy es false, productos comerciales tipicos para tratarlo (fungicida, insecticida, jabon potasico...) con como aplicarlos, en espanol, 2-4 frases. Si isHealthy es true, deja null.
 - remediesHome: SOLO si isHealthy es false, remedios caseros (agua con jabon, aceite de neem, bicarbonato...) con proporciones aproximadas, en espanol, 2-4 frases. Si isHealthy es true, deja null.`;
 
-  const result = await model.generateContent([
-    { inlineData: { data: base64Image, mimeType } },
-    { text: prompt },
-  ]);
+  const result = await generateContentWithRetry(model, [{ inlineData: { data: base64Image, mimeType } }, { text: prompt }]);
 
   return parseJson<AiDiagnosis>(result.response.text());
 }
