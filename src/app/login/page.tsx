@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { LoginDiagnostics } from '@/components/LoginDiagnostics';
 
 function LoginForm() {
   const router = useRouter();
@@ -93,6 +94,8 @@ function LoginForm() {
         >
           {mode === 'signin' ? '¿Primera vez? Crear cuenta' : 'Ya tengo cuenta'}
         </button>
+
+        <LoginDiagnostics />
       </div>
     </div>
   );
