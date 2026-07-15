@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { compressImage } from '@/lib/imageCompress';
 
 interface PhotoCaptureProps {
   onUploaded: (url: string) => void;
@@ -16,15 +17,17 @@ export function PhotoCapture({ onUploaded, label = 'Hacer foto' }: PhotoCaptureP
 
   async function handleFile(file: File) {
     setError(null);
-    setPreview(URL.createObjectURL(file));
     setUploading(true);
     try {
+      const compressed = await compressImage(file);
+      setPreview(URL.createObjectURL(compressed));
+
       const supabase = createClient();
-      const ext = file.name.split('.').pop() || 'jpg';
-      const path = `${crypto.randomUUID()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from('plant-photos').upload(path, file, {
+      const path = `${crypto.randomUUID()}.jpg`;
+      const { error: uploadError } = await supabase.storage.from('plant-photos').upload(path, compressed, {
         cacheControl: '3600',
         upsert: false,
+        contentType: 'image/jpeg',
       });
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from('plant-photos').getPublicUrl(path);
@@ -59,7 +62,7 @@ export function PhotoCapture({ onUploaded, label = 'Hacer foto' }: PhotoCaptureP
       />
 
       <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="btn-primary">
-        {uploading ? 'Subiendo foto...' : preview ? '📷 Cambiar foto' : `📷 ${label}`}
+        {uploading ? 'Preparando foto...' : preview ? '📷 Cambiar foto' : `📷 ${label}`}
       </button>
 
       {error && <p className="text-sm text-rose-600">{error}</p>}
