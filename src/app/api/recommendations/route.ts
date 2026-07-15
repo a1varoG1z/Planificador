@@ -16,13 +16,16 @@ export async function POST(request: Request) {
 
   const { data: plant, error: plantError } = await supabase
     .from('plants')
-    .select('id, species_scientific_name, species_common_name, care_profiles(*)')
+    .select('id, species_scientific_name, species_common_name, care_profiles(*), gardens(location)')
     .eq('id', plantId)
     .single();
 
   if (plantError || !plant) {
     return NextResponse.json({ error: plantError?.message ?? 'Planta no encontrada' }, { status: 404 });
   }
+
+  const gardenInfo = Array.isArray(plant.gardens) ? plant.gardens[0] : plant.gardens;
+  const location = gardenInfo?.location || 'Vitoria-Gasteiz, España';
 
   const careProfile = Array.isArray(plant.care_profiles) ? plant.care_profiles[0] : plant.care_profiles;
   if (!careProfile) {
@@ -59,6 +62,7 @@ export async function POST(request: Request) {
       careProfile,
       missedWaterings,
       missedFertilizings,
+      location,
     });
 
     const rows = recommendations.map((content) => ({ plant_id: plantId, content }));

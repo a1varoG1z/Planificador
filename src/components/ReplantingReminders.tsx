@@ -17,13 +17,13 @@ export function ReplantingReminders({ reminders }: { reminders: ReplantingRemind
   }
 
   return (
-    <section className="rounded-xl bg-leaf-50 p-4 shadow">
-      <h2 className="mb-2 font-bold text-leaf-800">🔁 Recordatorios de replantacion</h2>
+    <section className="card bg-amber-50/80">
+      <h2 className="section-title mb-2">🔁 Recordatorios de replantación</h2>
       <ul className="flex flex-col gap-2">
         {reminders.map((r) => (
-          <li key={r.id} className="flex items-center justify-between gap-2 rounded-lg bg-white p-3 text-sm shadow-sm">
+          <li key={r.id} className="flex items-center justify-between gap-2 rounded-2xl bg-white p-3 text-sm shadow-sm">
             <div>
-              <p className="font-medium text-leaf-800">{r.species_common_name || r.species_scientific_name}</p>
+              <p className="font-bold text-leaf-800">{r.species_common_name || r.species_scientific_name}</p>
               <p className="text-xs text-leaf-500">
                 Plantar sobre el {new Date(r.remind_date).toLocaleDateString('es-ES')}
               </p>
@@ -33,7 +33,7 @@ export function ReplantingReminders({ reminders }: { reminders: ReplantingRemind
                 href={`/plants/new?gardenId=${r.garden_id}&scientificName=${encodeURIComponent(
                   r.species_scientific_name ?? ''
                 )}&commonName=${encodeURIComponent(r.species_common_name ?? '')}`}
-                className="rounded-lg bg-leaf-600 px-3 py-1.5 font-medium text-white"
+                className="btn-primary px-3 py-1.5"
               >
                 Plantar ahora
               </Link>

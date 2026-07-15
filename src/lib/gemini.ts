@@ -47,6 +47,8 @@ const CARE_PROFILE_SCHEMA: Schema = {
     life_cycle: { type: SchemaType.STRING, format: 'enum', enum: ['annual', 'biennial', 'perennial'] },
     replant_month: { type: SchemaType.INTEGER, nullable: true },
     replanting_notes: { type: SchemaType.STRING },
+    bloom_month: { type: SchemaType.INTEGER, nullable: true },
+    bloom_notes: { type: SchemaType.STRING },
   },
   required: [
     'watering_frequency_days', 'watering_notes',
@@ -54,7 +56,7 @@ const CARE_PROFILE_SCHEMA: Schema = {
     'pruning_frequency_days', 'pruning_notes', 'pruning_season',
     'light_notes', 'temperature_min', 'temperature_max', 'temperature_notes',
     'humidity_notes', 'soil_notes', 'propagation_notes', 'flowering_fruit_tips',
-    'toxicity_notes', 'life_cycle', 'replanting_notes',
+    'toxicity_notes', 'life_cycle', 'replanting_notes', 'bloom_notes',
   ],
 };
 
@@ -89,7 +91,8 @@ const AI_DIAGNOSIS_SCHEMA: Schema = {
 export async function generateCareProfile(
   scientificName: string,
   commonName: string | null,
-  hints: PerenualHints | null
+  hints: PerenualHints | null,
+  location: string
 ): Promise<CareProfileDraft> {
   const model = getModel(CARE_PROFILE_SCHEMA);
 
@@ -98,22 +101,26 @@ export async function generateCareProfile(
 ${JSON.stringify(hints, null, 2)}`
     : 'No hay datos de referencia adicionales disponibles.';
 
-  const prompt = `Eres un experto en botanica y jardineria domestica. Genera una ficha de cuidados completa, practica y en espanol para la siguiente planta:
+  const prompt = `Eres un experto en botanica y jardineria domestica. Genera una ficha de cuidados completa, practica y en espanol para la siguiente planta, adaptada a la ubicacion indicada:
 
 Nombre cientifico: ${scientificName}
 Nombre comun: ${commonName ?? 'desconocido'}
+Ubicacion del jardin: ${location}
 
 ${hintsBlock}
 
 Instrucciones para cada campo:
-- watering_frequency_days / fertilizing_frequency_days / pruning_frequency_days: numero entero de dias entre cada tarea, estimado de forma realista para un hogar en clima templado.
-- pruning_season: epoca del ano recomendada para podar (ej. "final de invierno, antes de brotes nuevos").
+- Ajusta frecuencias, epocas y temperaturas al clima real de "${location}" (heladas, epoca de lluvias, veranos secos o humedos, etc.), no des valores genericos de manual.
+- watering_frequency_days / fertilizing_frequency_days / pruning_frequency_days: numero entero de dias entre cada tarea, realista para esa ubicacion.
+- pruning_season: epoca del ano recomendada para podar en esa ubicacion (ej. "final de invierno, antes de brotes nuevos").
 - propagation_notes: como reproducir la planta (esquejes, division, semilla, acodo...) paso a paso resumido.
 - flowering_fruit_tips: consejos concretos para mejorar la floracion o la fructificacion (abonado especifico, poda de formacion, luz, polinizacion manual si aplica).
 - toxicity_notes: si es toxica para personas o mascotas, y que sintomas provoca; si no lo es, indicalo brevemente.
 - life_cycle: "annual" si la planta completa su ciclo y muere en una temporada (ej. tomatera, albahaca), "biennial" si tarda dos temporadas, "perennial" si vive varios anos (arbustos, arboles, plantas de interior, bulbos como el ciclamen). Basate en el dato "cycle" de los datos de referencia si esta disponible.
-- replant_month: SOLO si life_cycle es "annual" o "biennial", numero de mes (1-12) recomendado para volver a plantarla tras el final de su ciclo (ej. semillero de tomate en marzo). Si life_cycle es "perennial", omitelo (null).
+- replant_month: SOLO si life_cycle es "annual" o "biennial", numero de mes (1-12) recomendado para volver a plantarla en esa ubicacion tras el final de su ciclo (ej. semillero de tomate en marzo). Si life_cycle es "perennial", omitelo (null).
 - replanting_notes: si life_cycle es "annual" o "biennial", 1-2 frases sobre como/cuando replantarla la siguiente temporada. Si es "perennial", explica brevemente que no hace falta replantarla salvo trasplante a maceta mayor.
+- bloom_month: SOLO si esta planta da flor o fruto vistoso (ej. ciclamen, tomatera, limonero), numero de mes (1-12) en el que tipicamente alcanza su proxima floracion/fructificacion en esa ubicacion. Si la planta no florece de forma relevante (ej. planta de follaje), omitelo (null).
+- bloom_notes: si bloom_month tiene valor, 1-2 frases describiendo que esperar (color, duracion, como favorecerla). Si no aplica, explica brevemente por que (ej. "planta de follaje, sin floracion ornamental relevante").
 - Todos los textos en espanol, tono cercano y practico, 1-3 frases por campo de notas.`;
 
   const result = await model.generateContent(prompt);
@@ -126,17 +133,19 @@ export async function generateRecommendations(input: {
   careProfile: Partial<CareProfileDraft>;
   missedWaterings: number;
   missedFertilizings: number;
+  location: string;
 }): Promise<string[]> {
   const model = getModel(RECOMMENDATIONS_SCHEMA);
 
   const prompt = `Eres un jardinero experto. Basandote en esta planta y su historial reciente, propon entre 3 y 5 recomendaciones de mejora CONCRETAS y accionables, en espanol, para que crezca mas sana y bonita.
 
 Especie: ${input.scientificName} (${input.commonName ?? 'sin nombre comun'})
+Ubicacion del jardin: ${input.location}
 Perfil de cuidados actual: ${JSON.stringify(input.careProfile)}
 Riegos recientes que se han retrasado respecto a lo recomendado: ${input.missedWaterings}
 Abonados recientes que se han retrasado respecto a lo recomendado: ${input.missedFertilizings}
 
-Cada recomendacion debe ser breve (1-2 frases), especifica para esta planta, no generica.`;
+Ten en cuenta el clima de "${input.location}" (heladas, epoca del ano) si es relevante. Cada recomendacion debe ser breve (1-2 frases), especifica para esta planta, no generica.`;
 
   const result = await model.generateContent(prompt);
   const parsed = parseJson<{ recommendations: string[] }>(result.response.text());

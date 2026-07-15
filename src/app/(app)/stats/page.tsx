@@ -67,7 +67,7 @@ export default async function StatsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-bold text-leaf-800">Estadisticas</h1>
+      <h1 className="page-title">Estadísticas 📊</h1>
       <StatsCharts
         totalPlants={activePlantsList.length}
         archivedPlants={archivedCount}

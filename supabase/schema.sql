@@ -44,9 +44,13 @@ create table if not exists public.gardens (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   description text,
+  -- ciudad/zona del jardin, para que la IA ajuste clima, heladas y epocas de siembra
+  location text not null default 'Vitoria-Gasteiz, España',
   created_by uuid references auth.users(id) default auth.uid(),
   created_at timestamptz not null default now()
 );
+
+alter table public.gardens add column if not exists location text not null default 'Vitoria-Gasteiz, España';
 
 alter table public.gardens enable row level security;
 
@@ -146,6 +150,10 @@ create table if not exists public.care_profiles (
   replant_month int check (replant_month between 1 and 12),
   replanting_notes text,
 
+  -- prediccion aproximada de la proxima floracion/fructificacion (solo si aplica)
+  bloom_month int check (bloom_month between 1 and 12),
+  bloom_notes text,
+
   source text check (source in ('perenual', 'gemini', 'hybrid', 'manual')),
   raw_notes text,
   generated_at timestamptz not null default now(),
@@ -161,6 +169,11 @@ alter table public.care_profiles drop constraint if exists care_profiles_replant
 alter table public.care_profiles add constraint care_profiles_replant_month_check
   check (replant_month between 1 and 12);
 alter table public.care_profiles add column if not exists replanting_notes text;
+alter table public.care_profiles add column if not exists bloom_month int;
+alter table public.care_profiles drop constraint if exists care_profiles_bloom_month_check;
+alter table public.care_profiles add constraint care_profiles_bloom_month_check
+  check (bloom_month between 1 and 12);
+alter table public.care_profiles add column if not exists bloom_notes text;
 
 alter table public.care_profiles enable row level security;
 

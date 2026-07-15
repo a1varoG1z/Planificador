@@ -28,25 +28,22 @@ export default async function GardenDetailPage({ params }: { params: { id: strin
     <div className="flex flex-col gap-4">
       <GardenHeader garden={garden} />
 
-      <Link
-        href={`/plants/new?gardenId=${garden.id}`}
-        className="flex items-center justify-center gap-2 rounded-xl bg-leaf-600 py-3 text-sm font-semibold text-white shadow hover:bg-leaf-700"
-      >
-        📷 Anadir planta
+      <Link href={`/plants/new?gardenId=${garden.id}`} className="btn-primary py-3 text-center">
+        📷 Añadir planta
       </Link>
 
       <ReplantingReminders reminders={reminders ?? []} />
 
       {activePlants.length === 0 && (
-        <p className="text-sm text-leaf-500">Este jardin todavia no tiene plantas activas.</p>
+        <p className="text-sm text-leaf-500">Este jardín todavía no tiene plantas activas.</p>
       )}
 
       <PlantGrid plants={activePlants} />
 
       {inactivePlants.length > 0 && (
-        <details className="rounded-xl bg-white p-3 shadow">
-          <summary className="cursor-pointer text-sm font-semibold text-leaf-600">
-            Plantas inactivas ({inactivePlants.length})
+        <details className="card">
+          <summary className="cursor-pointer text-sm font-bold text-leaf-600">
+            😴 Plantas inactivas ({inactivePlants.length})
           </summary>
           <div className="mt-3">
             <PlantGrid plants={inactivePlants} dimmed />

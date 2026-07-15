@@ -11,7 +11,7 @@ export default async function NewPlantPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-bold text-leaf-800">Anadir planta</h1>
+      <h1 className="page-title">Añadir planta 🌱</h1>
       <NewPlantForm
         gardens={gardens ?? []}
         defaultGardenId={searchParams.gardenId}

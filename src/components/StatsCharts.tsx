@@ -2,7 +2,7 @@
 
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-const COLORS = ['#16a34a', '#4ade80', '#86efac', '#15803d', '#166534', '#22c55e'];
+const COLORS = ['#2c8a49', '#63c479', '#95dca4', '#256e3d', '#e5477a', '#f7a3bc'];
 
 interface Props {
   totalPlants: number;
@@ -44,27 +44,27 @@ export function StatsCharts({
       </div>
 
       {(overdueByType.watering + overdueByType.fertilizing + overdueByType.pruning) > 0 && (
-        <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700 shadow">
-          Tienes {overdueByType.watering + overdueByType.fertilizing + overdueByType.pruning} tareas atrasadas.
+        <div className="card bg-rose-50/80 text-sm text-rose-600">
+          ⚠️ Tienes {overdueByType.watering + overdueByType.fertilizing + overdueByType.pruning} tareas atrasadas.
           Revisa el calendario.
         </div>
       )}
 
       {plantsPerGarden.length > 0 && (
-        <ChartCard title="Plantas por jardin">
+        <ChartCard title="🪴 Plantas por jardín">
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={plantsPerGarden}>
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
               <Tooltip />
-              <Bar dataKey="value" fill="#16a34a" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="value" fill="#2c8a49" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
       )}
 
       {speciesDistribution.length > 0 && (
-        <ChartCard title="Especies mas comunes">
+        <ChartCard title="🌿 Especies más comunes">
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={speciesDistribution} dataKey="value" nameKey="name" outerRadius={80} label>
@@ -78,20 +78,20 @@ export function StatsCharts({
         </ChartCard>
       )}
 
-      <ChartCard title="Tareas este mes (hechas vs atrasadas)">
+      <ChartCard title="✅ Tareas este mes (hechas vs atrasadas)">
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={completionsData}>
             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
             <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
             <Tooltip />
-            <Bar dataKey="hechas" fill="#16a34a" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="atrasadas" fill="#ef4444" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="hechas" fill="#2c8a49" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="atrasadas" fill="#e5477a" radius={[8, 8, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
 
       {(healthyCount + unhealthyCount) > 0 && (
-        <ChartCard title="Diagnosticos de salud">
+        <ChartCard title="🩺 Diagnósticos de salud">
           <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie
@@ -104,8 +104,8 @@ export function StatsCharts({
                 outerRadius={70}
                 label
               >
-                <Cell fill="#16a34a" />
-                <Cell fill="#ef4444" />
+                <Cell fill="#2c8a49" />
+                <Cell fill="#e5477a" />
               </Pie>
               <Tooltip />
             </PieChart>
@@ -118,8 +118,8 @@ export function StatsCharts({
 
 function StatTile({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl bg-white p-4 text-center shadow">
-      <p className="text-2xl font-bold text-leaf-700">{value}</p>
+    <div className="card-tight text-center">
+      <p className="font-display text-2xl font-bold text-leaf-700">{value}</p>
       <p className="text-xs text-leaf-500">{label}</p>
     </div>
   );
@@ -127,8 +127,8 @@ function StatTile({ label, value }: { label: string; value: number }) {
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl bg-white p-4 shadow">
-      <p className="mb-2 text-sm font-semibold text-leaf-700">{title}</p>
+    <div className="card">
+      <p className="mb-2 text-sm font-bold text-leaf-700">{title}</p>
       {children}
     </div>
   );

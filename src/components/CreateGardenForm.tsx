@@ -9,6 +9,7 @@ export function CreateGardenForm() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('Vitoria-Gasteiz, España');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,7 +18,9 @@ export function CreateGardenForm() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.from('gardens').insert({ name, description: description || null });
+    const { error } = await supabase
+      .from('gardens')
+      .insert({ name, description: description || null, location: location || 'Vitoria-Gasteiz, España' });
     setLoading(false);
     if (error) {
       setError(error.message);
@@ -31,43 +34,37 @@ export function CreateGardenForm() {
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full rounded-xl border-2 border-dashed border-leaf-300 py-3 text-sm font-medium text-leaf-600 hover:bg-leaf-50"
-      >
-        + Nuevo jardin
+      <button type="button" onClick={() => setOpen(true)} className="btn-outline w-full">
+        + Nuevo jardín
       </button>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2 rounded-xl bg-white p-4 shadow">
+    <form onSubmit={handleSubmit} className="card flex flex-col gap-2">
       <input
-        placeholder="Nombre del jardin (ej. Terraza, Salon...)"
+        placeholder="Nombre del jardín (ej. Terraza, Salón...)"
         required
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
       <input
-        placeholder="Descripcion (opcional)"
+        placeholder="Descripción (opcional)"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
+      <div>
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-leaf-500">
+          📍 Ubicación (para ajustar clima y épocas)
+        </label>
+        <input placeholder="Ciudad" value={location} onChange={(e) => setLocation(e.target.value)} />
+      </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 rounded-lg bg-leaf-600 py-2 text-sm font-medium text-white hover:bg-leaf-700 disabled:opacity-50"
-        >
+      <div className="flex gap-2 pt-1">
+        <button type="submit" disabled={loading} className="btn-primary flex-1">
           {loading ? 'Creando...' : 'Crear'}
         </button>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="rounded-lg border border-leaf-300 px-4 py-2 text-sm"
-        >
+        <button type="button" onClick={() => setOpen(false)} className="btn-outline">
           Cancelar
         </button>
       </div>

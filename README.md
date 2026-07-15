@@ -122,7 +122,12 @@ dashboard de Supabase) y entra.
     (vision) para dar un diagnostico y remedios de respaldo, sin cortar la funcionalidad.
 11. **Identificacion silvestre**: identifica cualquier planta/flor/arbol aunque no sea tuya,
     con opcion de anadirla a uno de tus jardines despues.
-12. **Jardines**: las plantas se organizan y filtran por jardin (terraza, salon, exterior...).
+12. **Jardines con ubicacion**: cada jardin tiene una ciudad (por defecto Vitoria-Gasteiz).
+    Gemini usa esa ubicacion para ajustar frecuencias de riego, epocas de poda/replantacion y
+    recomendaciones al clima real de la zona, en vez de dar valores genericos de manual.
+13. **Prediccion de floracion**: para plantas que dan flor o fruto vistoso (ej. ciclamen,
+    tomatera, limonero), el perfil incluye una estimacion del proximo mes de floracion o
+    fructificacion, adaptada tambien a la ubicacion del jardin.
 
 ## Posibles mejoras futuras
 

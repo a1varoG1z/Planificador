@@ -1,6 +1,21 @@
 import type { Metadata, Viewport } from 'next';
+import { Quicksand, Nunito } from 'next/font/google';
 import { RegisterServiceWorker } from '@/components/RegisterServiceWorker';
 import './globals.css';
+
+const display = Quicksand({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-display',
+  display: 'swap',
+});
+
+const body = Nunito({
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800'],
+  variable: '--font-body',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Plantario',
@@ -18,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#16a34a',
+  themeColor: '#2c8a49',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -26,7 +41,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es" className={`${display.variable} ${body.variable}`}>
       <body>
         <RegisterServiceWorker />
         {children}

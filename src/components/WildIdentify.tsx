@@ -72,15 +72,15 @@ export function WildIdentify({ gardens, wildFinds }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-xl bg-white p-4 shadow">
+      <div className="card">
         <PhotoCapture onUploaded={handlePhotoUploaded} label="Fotografiar planta" />
-        {identifying && <p className="mt-2 text-center text-sm text-leaf-600">Identificando...</p>}
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        {identifying && <p className="mt-2 text-center text-sm font-semibold text-leaf-600">🔍 Identificando...</p>}
+        {error && <p className="mt-2 rounded-2xl bg-rose-50 p-3 text-sm text-rose-600">{error}</p>}
       </div>
 
       {result && (
-        <div className="rounded-xl bg-leaf-50 p-4 shadow">
-          <p className="font-semibold text-leaf-800">
+        <div className="card bg-leaf-50/80">
+          <p className="font-display font-bold text-leaf-800">
             {result.species_common_name || result.species_scientific_name}
           </p>
           {result.species_scientific_name && (
@@ -97,12 +97,8 @@ export function WildIdentify({ gardens, wildFinds }: Props) {
                   </option>
                 ))}
               </select>
-              <button
-                onClick={() => addToGarden(result)}
-                disabled={addingToGarden}
-                className="rounded-lg bg-leaf-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-              >
-                {addingToGarden ? '...' : '+ Mi jardin'}
+              <button onClick={() => addToGarden(result)} disabled={addingToGarden} className="btn-primary shrink-0 px-3">
+                {addingToGarden ? '...' : '+ Mi jardín'}
               </button>
             </div>
           )}
@@ -111,17 +107,15 @@ export function WildIdentify({ gardens, wildFinds }: Props) {
 
       {wildFinds.length > 0 && (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-leaf-500">
-            Descubrimientos anteriores
-          </p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-leaf-400">Descubrimientos anteriores</p>
           <ul className="flex flex-col gap-2">
             {wildFinds.map((f) => (
-              <li key={f.id} className="flex items-center gap-3 rounded-xl bg-white p-3 shadow">
+              <li key={f.id} className="card-tight flex items-center gap-3">
                 {f.photo_url && (
-                  <img src={f.photo_url} alt="" className="h-14 w-14 rounded-lg object-cover" />
+                  <img src={f.photo_url} alt="" className="h-14 w-14 rounded-xl object-cover" />
                 )}
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-leaf-800">
+                  <p className="text-sm font-bold text-leaf-800">
                     {f.species_common_name || f.species_scientific_name}
                   </p>
                   <p className="text-xs text-leaf-400">{new Date(f.found_at).toLocaleDateString('es-ES')}</p>

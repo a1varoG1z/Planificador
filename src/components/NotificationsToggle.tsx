@@ -73,26 +73,25 @@ export function NotificationsToggle() {
   if (status === 'unsupported') return null;
 
   return (
-    <div className="rounded-xl bg-white p-4 shadow">
-      <div className="flex items-center justify-between">
+    <div className="card">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-leaf-800">🔔 Notificaciones</p>
-          <p className="text-xs text-leaf-500">Avisos diarios de riego, abono, poda y replantacion</p>
+          <p className="text-sm font-bold text-leaf-800">🔔 Notificaciones</p>
+          <p className="text-xs text-leaf-500">Avisos diarios de riego, abono, poda y replantación</p>
         </div>
-        {status === 'checking' && <span className="text-xs text-leaf-400">...</span>}
-        {status === 'busy' && <span className="text-xs text-leaf-400">...</span>}
+        {(status === 'checking' || status === 'busy') && <span className="text-xs text-leaf-400">...</span>}
         {status === 'off' && (
-          <button onClick={enable} className="rounded-lg bg-leaf-600 px-3 py-1.5 text-xs font-medium text-white">
+          <button onClick={enable} className="btn-primary shrink-0 px-3 py-1.5 text-xs">
             Activar
           </button>
         )}
         {status === 'on' && (
-          <button onClick={disable} className="rounded-lg border border-leaf-300 px-3 py-1.5 text-xs text-leaf-600">
+          <button onClick={disable} className="btn-outline shrink-0 px-3 py-1.5 text-xs">
             Desactivar
           </button>
         )}
       </div>
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-xs text-rose-600">{error}</p>}
     </div>
   );
 }

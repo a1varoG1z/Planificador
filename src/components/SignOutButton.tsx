@@ -15,9 +15,9 @@ export function SignOutButton() {
         router.replace('/login');
         router.refresh();
       }}
-      className="text-sm text-leaf-500 underline"
+      className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/25"
     >
-      Cerrar sesion
+      Salir
     </button>
   );
 }

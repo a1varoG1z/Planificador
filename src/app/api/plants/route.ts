@@ -27,6 +27,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Faltan gardenId o speciesScientificName' }, { status: 400 });
   }
 
+  const { data: garden } = await supabase.from('gardens').select('location').eq('id', gardenId).single();
+  const location = garden?.location || 'Vitoria-Gasteiz, España';
+
   const photoList: { url: string; organ?: string }[] = photos ?? (photoUrl ? [{ url: photoUrl }] : []);
   const coverPhotoUrl = photoUrl || photoList[0]?.url || null;
 
@@ -57,7 +60,7 @@ export async function POST(request: Request) {
 
   try {
     const hints = await findPerenualHints(speciesCommonName || speciesScientificName);
-    const draft = await generateCareProfile(speciesScientificName, speciesCommonName || null, hints);
+    const draft = await generateCareProfile(speciesScientificName, speciesCommonName || null, hints, location);
 
     const today = new Date().toISOString().slice(0, 10);
     const { data: profile, error: profileError } = await supabase

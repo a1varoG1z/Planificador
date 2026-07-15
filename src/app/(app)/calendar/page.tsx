@@ -37,7 +37,7 @@ export default async function CalendarPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-bold text-leaf-800">Calendario de cuidados</h1>
+      <h1 className="page-title">Calendario 📅</h1>
       <CalendarGrid year={year} month={month} tasks={tasks} />
     </div>
   );

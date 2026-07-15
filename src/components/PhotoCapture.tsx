@@ -39,9 +39,9 @@ export function PhotoCapture({ onUploaded, label = 'Hacer foto' }: PhotoCaptureP
   return (
     <div className="flex flex-col items-center gap-3">
       {preview ? (
-        <img src={preview} alt="Vista previa" className="h-48 w-48 rounded-xl object-cover shadow" />
+        <img src={preview} alt="Vista previa" className="h-48 w-48 rounded-2xl object-cover shadow-soft" />
       ) : (
-        <div className="flex h-48 w-48 items-center justify-center rounded-xl border-2 border-dashed border-leaf-300 bg-leaf-50 text-4xl">
+        <div className="flex h-48 w-48 items-center justify-center rounded-2xl border-2 border-dashed border-leaf-200 bg-leaf-50 text-4xl">
           🌿
         </div>
       )}
@@ -58,16 +58,11 @@ export function PhotoCapture({ onUploaded, label = 'Hacer foto' }: PhotoCaptureP
         }}
       />
 
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className="rounded-full bg-leaf-600 px-5 py-2 text-sm font-medium text-white shadow hover:bg-leaf-700 disabled:opacity-50"
-      >
-        {uploading ? 'Subiendo foto...' : preview ? 'Cambiar foto' : label}
+      <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="btn-primary">
+        {uploading ? 'Subiendo foto...' : preview ? '📷 Cambiar foto' : `📷 ${label}`}
       </button>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-rose-600">{error}</p>}
     </div>
   );
 }

@@ -6,6 +6,7 @@ export interface Garden {
   id: string;
   name: string;
   description: string | null;
+  location: string;
   created_by: string | null;
   created_at: string;
 }
@@ -52,6 +53,8 @@ export interface CareProfile {
   life_cycle: LifeCycle | null;
   replant_month: number | null;
   replanting_notes: string | null;
+  bloom_month: number | null;
+  bloom_notes: string | null;
   source: 'perenual' | 'gemini' | 'hybrid' | 'manual' | null;
   raw_notes: string | null;
   generated_at: string;
@@ -121,6 +124,8 @@ export interface CareProfileDraft {
   life_cycle: LifeCycle | null;
   replant_month: number | null;
   replanting_notes: string | null;
+  bloom_month: number | null;
+  bloom_notes: string | null;
 }
 
 export interface PlantPhoto {

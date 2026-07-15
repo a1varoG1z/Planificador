@@ -43,19 +43,24 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-leaf-50 px-6">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow">
-        <h1 className="mb-1 text-center text-2xl font-bold text-leaf-800">🌿 Plantario</h1>
-        <p className="mb-6 text-center text-sm text-leaf-500">Vuestro jardin, siempre a punto</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-leaf-100 via-sand-50 to-sand-100 px-6">
+      <div className="w-full max-w-sm rounded-3xl bg-white/95 p-8 shadow-floating backdrop-blur">
+        <div className="mb-6 flex flex-col items-center">
+          <span className="mb-2 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-leaf-400 to-leaf-600 text-3xl shadow-soft">
+            🌿
+          </span>
+          <h1 className="page-title">Plantario</h1>
+          <p className="text-sm text-leaf-500">Vuestro jardín, siempre a punto</p>
+        </div>
 
         {notAllowed && (
-          <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-            Esta cuenta no esta autorizada para usar esta app.
+          <p className="mb-4 rounded-2xl bg-rose-50 p-3 text-center text-sm text-rose-600">
+            Esta cuenta no está autorizada para usar esta app.
           </p>
         )}
         {signupOk && (
-          <p className="mb-4 rounded-lg bg-leaf-50 p-3 text-sm text-leaf-700">
-            Cuenta creada. Revisa tu correo para confirmarla y despues inicia sesion.
+          <p className="mb-4 rounded-2xl bg-leaf-50 p-3 text-center text-sm text-leaf-700">
+            Cuenta creada. Revisa tu correo para confirmarla y después inicia sesión.
           </p>
         )}
 
@@ -69,28 +74,24 @@ function LoginForm() {
           />
           <input
             type="password"
-            placeholder="Contrasena"
+            placeholder="Contraseña"
             required
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-lg bg-leaf-600 py-2 font-medium text-white hover:bg-leaf-700 disabled:opacity-50"
-          >
-            {loading ? 'Un momento...' : mode === 'signin' ? 'Entrar' : 'Crear cuenta'}
+          {error && <p className="text-sm text-rose-600">{error}</p>}
+          <button type="submit" disabled={loading} className="btn-primary mt-1 py-3">
+            {loading ? 'Un momento...' : mode === 'signin' ? 'Entrar 🌱' : 'Crear cuenta'}
           </button>
         </form>
 
         <button
           type="button"
           onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-          className="mt-4 w-full text-center text-sm text-leaf-500 underline"
+          className="btn-ghost mt-4 w-full text-center"
         >
-          {mode === 'signin' ? 'Primera vez? Crear cuenta' : 'Ya tengo cuenta'}
+          {mode === 'signin' ? '¿Primera vez? Crear cuenta' : 'Ya tengo cuenta'}
         </button>
       </div>
     </div>

@@ -20,16 +20,16 @@ export function PlantPhotoGallery({ plantId, photos }: { plantId: string; photos
   }
 
   return (
-    <section className="rounded-xl bg-white p-4 shadow">
-      <h2 className="mb-3 font-bold text-leaf-800">Historial de fotos</h2>
+    <section className="card">
+      <h2 className="section-title mb-3">📸 Historial de fotos</h2>
 
-      {photos.length === 0 && <p className="mb-3 text-sm text-leaf-500">Todavia no hay fotos guardadas.</p>}
+      {photos.length === 0 && <p className="mb-3 text-sm text-leaf-500">Todavía no hay fotos guardadas.</p>}
 
       {photos.length > 0 && (
         <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
           {photos.map((p) => (
             <div key={p.id} className="shrink-0">
-              <img src={p.photo_url} alt="" className="h-24 w-24 rounded-lg object-cover shadow" />
+              <img src={p.photo_url} alt="" className="h-24 w-24 rounded-2xl object-cover shadow-soft" />
               <p className="mt-1 text-center text-[10px] text-leaf-400">
                 {new Date(p.taken_at).toLocaleDateString('es-ES')}
               </p>
@@ -38,7 +38,7 @@ export function PlantPhotoGallery({ plantId, photos }: { plantId: string; photos
         </div>
       )}
 
-      {!adding && <PhotoCapture onUploaded={handleUploaded} label="Anadir foto" />}
+      {!adding && <PhotoCapture onUploaded={handleUploaded} label="Añadir foto" />}
       {adding && <p className="text-center text-sm text-leaf-600">Guardando foto...</p>}
     </section>
   );

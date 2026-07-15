@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
   const { data: plant, error: plantError } = await supabase
     .from('plants')
-    .select('id, species_scientific_name, species_common_name')
+    .select('id, species_scientific_name, species_common_name, gardens(location)')
     .eq('id', plantId)
     .single();
 
@@ -26,9 +26,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'La planta no tiene nombre de especie definido' }, { status: 400 });
   }
 
+  const gardenInfo = Array.isArray(plant.gardens) ? plant.gardens[0] : plant.gardens;
+  const location = gardenInfo?.location || 'Vitoria-Gasteiz, España';
+
   try {
     const hints = await findPerenualHints(plant.species_common_name || plant.species_scientific_name);
-    const draft = await generateCareProfile(plant.species_scientific_name, plant.species_common_name, hints);
+    const draft = await generateCareProfile(plant.species_scientific_name, plant.species_common_name, hints, location);
 
     const { data: profile, error: profileError } = await supabase
       .from('care_profiles')

@@ -129,8 +129,8 @@ export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, 
             <div className="flex flex-wrap gap-2">
               {photos.map((p, i) => (
                 <div key={i} className="relative">
-                  <img src={p.url} alt="" className="h-16 w-16 rounded-lg object-cover shadow" />
-                  <span className="absolute bottom-0 left-0 right-0 rounded-b-lg bg-black/50 text-center text-[9px] text-white">
+                  <img src={p.url} alt="" className="h-16 w-16 rounded-xl object-cover shadow-soft" />
+                  <span className="absolute bottom-0 left-0 right-0 rounded-b-xl bg-black/50 text-center text-[9px] text-white">
                     {ORGAN_OPTIONS.find((o) => o.value === p.organ)?.label}
                   </span>
                 </div>
@@ -139,7 +139,7 @@ export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, 
           )}
 
           {photos.length < MAX_PHOTOS && (
-            <>
+            <div className="card flex flex-col gap-3">
               <select value={nextOrgan} onChange={(e) => setNextOrgan(e.target.value as PlantOrgan)}>
                 {ORGAN_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -150,38 +150,34 @@ export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, 
               <PhotoCapture
                 key={photos.length}
                 onUploaded={addPhoto}
-                label={photos.length === 0 ? 'Hacer foto a la planta' : 'Anadir otra foto'}
+                label={photos.length === 0 ? 'Hacer foto a la planta' : 'Añadir otra foto'}
               />
               <p className="text-center text-xs text-leaf-400">
-                Puedes anadir varias fotos (hoja, flor, fruto...) para mejorar la identificacion.
+                Puedes añadir varias fotos (hoja, flor, fruto...) para mejorar la identificación.
               </p>
-            </>
+            </div>
           )}
 
           {photos.length > 0 && (
-            <button
-              type="button"
-              onClick={runIdentify}
-              className="rounded-lg bg-leaf-600 py-3 font-semibold text-white hover:bg-leaf-700"
-            >
-              Identificar con {photos.length} foto{photos.length > 1 ? 's' : ''}
+            <button type="button" onClick={runIdentify} className="btn-primary py-3">
+              🔍 Identificar con {photos.length} foto{photos.length > 1 ? 's' : ''}
             </button>
           )}
 
-          <button type="button" onClick={skipPhoto} className="text-center text-sm text-leaf-500 underline">
-            Anadir sin foto
+          <button type="button" onClick={skipPhoto} className="btn-ghost text-center">
+            Añadir sin foto
           </button>
         </div>
       )}
 
       {step === 'identifying' && (
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-3 py-6">
           <div className="flex gap-2">
             {photos.map((p, i) => (
-              <img key={i} src={p.url} alt="" className="h-24 w-24 rounded-xl object-cover shadow" />
+              <img key={i} src={p.url} alt="" className="h-24 w-24 animate-pulse rounded-2xl object-cover shadow-soft" />
             ))}
           </div>
-          <p className="text-sm text-leaf-600">Identificando especie con PlantNet...</p>
+          <p className="text-sm font-semibold text-leaf-600">🔍 Identificando especie con PlantNet...</p>
         </div>
       )}
 
@@ -190,21 +186,21 @@ export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, 
           {photos.length > 0 && (
             <div className="mx-auto flex gap-2">
               {photos.map((p, i) => (
-                <img key={i} src={p.url} alt="" className="h-24 w-24 rounded-xl object-cover shadow" />
+                <img key={i} src={p.url} alt="" className="h-24 w-24 rounded-2xl object-cover shadow-soft" />
               ))}
             </div>
           )}
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="rounded-2xl bg-rose-50 p-3 text-sm text-rose-600">{error}</p>}
 
           {candidates.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium text-leaf-700">Especies identificadas:</p>
+              <p className="text-sm font-bold text-leaf-700">Especies identificadas:</p>
               {candidates.map((c, i) => (
                 <label
                   key={i}
-                  className={`flex cursor-pointer items-center justify-between rounded-lg border p-3 text-sm ${
-                    !manual && selectedIndex === i ? 'border-leaf-600 bg-leaf-50' : 'border-leaf-200'
+                  className={`flex cursor-pointer items-center justify-between rounded-2xl border-2 p-3 text-sm transition-colors ${
+                    !manual && selectedIndex === i ? 'border-leaf-500 bg-leaf-50' : 'border-leaf-100 bg-white'
                   }`}
                 >
                   <span>
@@ -212,7 +208,7 @@ export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, 
                     {c.commonNames[0] && <span className="block text-xs text-leaf-500">{c.commonNames[0]}</span>}
                   </span>
                   <span className="flex items-center gap-2">
-                    <span className="text-xs text-leaf-500">{Math.round(c.score * 100)}%</span>
+                    <span className="chip">{Math.round(c.score * 100)}%</span>
                     <input
                       type="radio"
                       name="candidate"
@@ -222,7 +218,7 @@ export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, 
                   </span>
                 </label>
               ))}
-              <button type="button" onClick={() => setManual(true)} className="text-left text-xs text-leaf-500 underline">
+              <button type="button" onClick={() => setManual(true)} className="btn-ghost text-left text-xs">
                 Ninguna es correcta, especificar manualmente
               </button>
             </div>
@@ -231,12 +227,12 @@ export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, 
           {manual && (
             <div className="flex flex-col gap-2">
               <input
-                placeholder="Nombre cientifico (ej. Monstera deliciosa)"
+                placeholder="Nombre científico (ej. Monstera deliciosa)"
                 value={scientificName}
                 onChange={(e) => setScientificName(e.target.value)}
               />
               <input
-                placeholder="Nombre comun (opcional)"
+                placeholder="Nombre común (opcional)"
                 value={commonName}
                 onChange={(e) => setCommonName(e.target.value)}
               />
@@ -244,7 +240,7 @@ export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, 
           )}
 
           <input
-            placeholder="Ponle un nombre carinoso (opcional)"
+            placeholder="Ponle un nombre cariñoso (opcional)"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
           />
@@ -258,13 +254,8 @@ export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, 
             ))}
           </select>
 
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={step === 'creating'}
-            className="rounded-lg bg-leaf-600 py-3 font-semibold text-white hover:bg-leaf-700 disabled:opacity-50"
-          >
-            {step === 'creating' ? 'Generando perfil de cuidados con IA...' : 'Crear ficha de la planta'}
+          <button type="button" onClick={handleCreate} disabled={step === 'creating'} className="btn-primary py-3">
+            {step === 'creating' ? '✨ Generando perfil de cuidados con IA...' : '🌱 Crear ficha de la planta'}
           </button>
         </div>
       )}

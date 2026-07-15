@@ -11,9 +11,9 @@ export default async function WildPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-bold text-leaf-800">Identificar en la naturaleza</h1>
+        <h1 className="page-title">Identificar en la naturaleza 🌼</h1>
         <p className="text-sm text-leaf-500">
-          Haz una foto a cualquier planta, flor o arbol que veas, aunque no sea tuya.
+          Haz una foto a cualquier planta, flor o árbol que veas, aunque no sea tuya.
         </p>
       </div>
       <WildIdentify gardens={gardens ?? []} wildFinds={wildFinds ?? []} />

@@ -9,15 +9,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   } = await supabase.auth.getUser();
 
   return (
-    <div className="min-h-screen bg-leaf-50 pb-20">
-      <header className="flex items-center justify-between border-b border-leaf-100 bg-white px-4 py-3">
-        <span className="text-lg font-bold text-leaf-800">🌿 Plantario</span>
+    <div className="min-h-screen pb-24">
+      <header className="sticky top-0 z-10 flex items-center justify-between bg-gradient-to-r from-leaf-600 to-leaf-500 px-4 py-3.5 shadow-soft">
+        <span className="font-display text-lg font-bold text-white">🌿 Plantario</span>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-leaf-500">{user?.email}</span>
+          <span className="hidden text-xs text-leaf-100 sm:inline">{user?.email}</span>
           <SignOutButton />
         </div>
       </header>
-      <main className="mx-auto max-w-md px-4 py-4">{children}</main>
+      <main className="mx-auto max-w-md px-4 py-5">{children}</main>
       <BottomNav />
     </div>
   );

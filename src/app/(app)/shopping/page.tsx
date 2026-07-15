@@ -11,7 +11,7 @@ export default async function ShoppingPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-bold text-leaf-800">Lista de la compra</h1>
+      <h1 className="page-title">Lista de la compra 🛒</h1>
       <ShoppingListView items={items ?? []} />
     </div>
   );
