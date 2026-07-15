@@ -22,9 +22,12 @@ export default async function StatsPage() {
     care_profile: (Array.isArray(p.care_profiles) ? p.care_profiles[0] : p.care_profiles) as CareProfile | null,
   }));
 
+  const activePlantsList = plantsWithProfile.filter((p) => p.status === 'active');
+  const archivedCount = plantsWithProfile.length - activePlantsList.length;
+
   const plantsPerGarden = (gardens ?? []).map((g) => ({
     name: g.name,
-    value: plantsWithProfile.filter((p) => p.garden_id === g.id).length,
+    value: activePlantsList.filter((p) => p.garden_id === g.id).length,
   }));
 
   const speciesCounts = new Map<string, number>();
@@ -46,7 +49,7 @@ export default async function StatsPage() {
 
   const today = new Date();
   const overdueByType = { watering: 0, fertilizing: 0, pruning: 0 };
-  for (const p of plantsWithProfile) {
+  for (const p of activePlantsList) {
     const profile = p.care_profile;
     if (!profile) continue;
     (['watering', 'fertilizing', 'pruning'] as const).forEach((type) => {
@@ -66,7 +69,8 @@ export default async function StatsPage() {
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-bold text-leaf-800">Estadisticas</h1>
       <StatsCharts
-        totalPlants={plantsWithProfile.length}
+        totalPlants={activePlantsList.length}
+        archivedPlants={archivedCount}
         totalGardens={gardens?.length ?? 0}
         plantsPerGarden={plantsPerGarden}
         speciesDistribution={speciesDistribution}

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { GardenHeader } from '@/components/GardenHeader';
+import { PlantGrid } from '@/components/PlantGrid';
+import { ReplantingReminders } from '@/components/ReplantingReminders';
 
 export default async function GardenDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -9,11 +11,18 @@ export default async function GardenDetailPage({ params }: { params: { id: strin
   const { data: garden } = await supabase.from('gardens').select('*').eq('id', params.id).single();
   if (!garden) notFound();
 
-  const { data: plants } = await supabase
-    .from('plants')
-    .select('*')
-    .eq('garden_id', params.id)
-    .order('created_at', { ascending: false });
+  const [{ data: plants }, { data: reminders }] = await Promise.all([
+    supabase.from('plants').select('*').eq('garden_id', params.id).order('created_at', { ascending: false }),
+    supabase
+      .from('replanting_reminders')
+      .select('*')
+      .eq('garden_id', params.id)
+      .eq('dismissed', false)
+      .order('remind_date', { ascending: true }),
+  ]);
+
+  const activePlants = (plants ?? []).filter((p) => p.status === 'active');
+  const inactivePlants = (plants ?? []).filter((p) => p.status === 'inactive');
 
   return (
     <div className="flex flex-col gap-4">
@@ -23,39 +32,27 @@ export default async function GardenDetailPage({ params }: { params: { id: strin
         href={`/plants/new?gardenId=${garden.id}`}
         className="flex items-center justify-center gap-2 rounded-xl bg-leaf-600 py-3 text-sm font-semibold text-white shadow hover:bg-leaf-700"
       >
-        📷 Anadir planta con foto
+        📷 Anadir planta
       </Link>
 
-      {plants?.length === 0 && (
-        <p className="text-sm text-leaf-500">Este jardin todavia no tiene plantas.</p>
+      <ReplantingReminders reminders={reminders ?? []} />
+
+      {activePlants.length === 0 && (
+        <p className="text-sm text-leaf-500">Este jardin todavia no tiene plantas activas.</p>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        {plants?.map((plant) => (
-          <Link
-            key={plant.id}
-            href={`/plants/${plant.id}`}
-            className="flex flex-col overflow-hidden rounded-xl bg-white shadow hover:shadow-md"
-          >
-            <div className="aspect-square w-full bg-leaf-100">
-              {plant.photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={plant.photo_url} alt={plant.nickname ?? ''} className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full items-center justify-center text-3xl">🌱</div>
-              )}
-            </div>
-            <div className="p-2">
-              <p className="truncate text-sm font-semibold text-leaf-800">
-                {plant.nickname || plant.species_common_name || plant.species_scientific_name}
-              </p>
-              {plant.species_scientific_name && (
-                <p className="truncate text-xs italic text-leaf-500">{plant.species_scientific_name}</p>
-              )}
-            </div>
-          </Link>
-        ))}
-      </div>
+      <PlantGrid plants={activePlants} />
+
+      {inactivePlants.length > 0 && (
+        <details className="rounded-xl bg-white p-3 shadow">
+          <summary className="cursor-pointer text-sm font-semibold text-leaf-600">
+            Plantas inactivas ({inactivePlants.length})
+          </summary>
+          <div className="mt-3">
+            <PlantGrid plants={inactivePlants} dimmed />
+          </div>
+        </details>
+      )}
     </div>
   );
 }

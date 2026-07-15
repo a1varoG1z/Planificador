@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { PhotoCapture } from './PhotoCapture';
-import type { CareProfile, Diagnosis, Plant, Recommendation, TaskType } from '@/lib/types';
+import { PlantPhotoGallery } from './PlantPhotoGallery';
+import type { CareProfile, Diagnosis, Plant, PlantPhoto, Recommendation, TaskType } from '@/lib/types';
 
 interface Props {
   plant: Plant;
@@ -12,7 +13,13 @@ interface Props {
   gardens: { id: string; name: string }[];
   diagnoses: Diagnosis[];
   recommendations: Recommendation[];
+  photos: PlantPhoto[];
 }
+
+const MONTH_NAMES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
 
 const TASKS: { type: TaskType; label: string; icon: string }[] = [
   { type: 'watering', label: 'Regado hoy', icon: '💧' },
@@ -22,7 +29,7 @@ const TASKS: { type: TaskType; label: string; icon: string }[] = [
 
 const FIELD_LABEL = 'text-xs font-semibold uppercase tracking-wide text-leaf-500';
 
-export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommendations }: Props) {
+export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommendations, photos }: Props) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -136,6 +143,44 @@ export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommenda
     router.refresh();
   }
 
+  async function addRecommendationToShoppingList(content: string) {
+    await supabase.from('shopping_list').insert({ item: content, plant_id: plant.id });
+    alert('Anadido a la lista de la compra');
+  }
+
+  async function archivePlant() {
+    if (!confirm(`Marcar "${title}" como inactiva? Se dejaran de generar tareas de riego/abono/poda para ella.`))
+      return;
+    setBusy('archiving');
+    setError(null);
+    try {
+      const res = await fetch('/api/plants/archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plantId: plant.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo archivar la planta');
+      if (data.reminderCreated) {
+        alert(
+          `Como es una planta de ciclo ${data.lifeCycle === 'annual' ? 'anual' : 'bienal'}, se ha anadido un recordatorio en el calendario para volver a plantarla en ${MONTH_NAMES[data.remindMonth - 1]}.`
+        );
+      }
+      router.refresh();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function reactivatePlant() {
+    setBusy('reactivating');
+    await supabase.from('plants').update({ status: 'active' }).eq('id', plant.id);
+    setBusy(null);
+    router.refresh();
+  }
+
   async function handleDiagnosePhoto(photoUrl: string) {
     setDiagnosing(true);
     setError(null);
@@ -169,7 +214,14 @@ export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommenda
       {!editing ? (
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-xl font-bold text-leaf-800">{title}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-leaf-800">{title}</h1>
+              {plant.status === 'inactive' && (
+                <span className="rounded-full bg-leaf-100 px-2 py-0.5 text-xs font-medium text-leaf-500">
+                  Inactiva
+                </span>
+              )}
+            </div>
             {plant.species_scientific_name && (
               <p className="text-sm italic text-leaf-500">{plant.species_scientific_name}</p>
             )}
@@ -178,8 +230,17 @@ export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommenda
             <button onClick={() => setEditing(true)} className="text-leaf-600 underline">
               Editar
             </button>
+            {plant.status === 'active' ? (
+              <button onClick={archivePlant} disabled={busy === 'archiving'} className="text-leaf-500 underline disabled:opacity-50">
+                Marcar inactiva
+              </button>
+            ) : (
+              <button onClick={reactivatePlant} disabled={busy === 'reactivating'} className="text-leaf-600 underline disabled:opacity-50">
+                Reactivar
+              </button>
+            )}
             <button onClick={deletePlant} className="text-red-500 underline">
-              Borrar
+              Quitar del jardin
             </button>
           </div>
         </div>
@@ -273,9 +334,22 @@ export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommenda
             <CareField label="🌿 Reproduccion" notes={careProfile.propagation_notes} />
             <CareField label="🌸 Mejorar floracion/fruto" notes={careProfile.flowering_fruit_tips} />
             <CareField label="⚠️ Toxicidad" notes={careProfile.toxicity_notes} />
+            <CareField
+              label="🔁 Ciclo de vida"
+              notes={careProfile.replanting_notes}
+              extra={
+                careProfile.life_cycle
+                  ? `${{ annual: 'Anual', biennial: 'Bienal', perennial: 'Perenne' }[careProfile.life_cycle]}${
+                      careProfile.replant_month ? ` · replantar en ${MONTH_NAMES[careProfile.replant_month - 1]}` : ''
+                    }`
+                  : undefined
+              }
+            />
           </div>
         )}
       </section>
+
+      <PlantPhotoGallery plantId={plant.id} photos={photos} />
 
       {/* Recomendaciones IA */}
       <section className="rounded-xl bg-white p-4 shadow">
@@ -296,9 +370,14 @@ export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommenda
           {recommendations.map((r) => (
             <li key={r.id} className="flex items-start justify-between gap-2 rounded-lg bg-leaf-50 p-3 text-sm">
               <span>{r.content}</span>
-              <button onClick={() => dismissRecommendation(r.id)} className="shrink-0 text-xs text-leaf-400 underline">
-                Descartar
-              </button>
+              <span className="flex shrink-0 flex-col items-end gap-1 text-xs">
+                <button onClick={() => addRecommendationToShoppingList(r.content)} className="text-leaf-500 underline">
+                  + Compra
+                </button>
+                <button onClick={() => dismissRecommendation(r.id)} className="text-leaf-400 underline">
+                  Descartar
+                </button>
+              </span>
             </li>
           ))}
         </ul>

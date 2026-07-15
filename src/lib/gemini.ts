@@ -59,7 +59,10 @@ Devuelve EXCLUSIVAMENTE un JSON con esta forma exacta (sin texto adicional, sin 
   "soil_notes": string,
   "propagation_notes": string,
   "flowering_fruit_tips": string,
-  "toxicity_notes": string
+  "toxicity_notes": string,
+  "life_cycle": "annual" | "biennial" | "perennial",
+  "replant_month": number | null,
+  "replanting_notes": string
 }
 
 Instrucciones para cada campo:
@@ -68,6 +71,9 @@ Instrucciones para cada campo:
 - propagation_notes: como reproducir la planta (esquejes, division, semilla, acodo...) paso a paso resumido.
 - flowering_fruit_tips: consejos concretos para mejorar la floracion o la fructificacion (abonado especifico, poda de formacion, luz, polinizacion manual si aplica).
 - toxicity_notes: si es toxica para personas o mascotas, y que sintomas provoca; si no lo es, indicalo brevemente.
+- life_cycle: "annual" si la planta completa su ciclo y muere en una temporada (ej. tomatera, albahaca), "biennial" si tarda dos temporadas, "perennial" si vive varios anos (arbustos, arboles, plantas de interior, bulbos como el ciclamen). Basate en el dato "cycle" de los datos de referencia si esta disponible.
+- replant_month: SOLO si life_cycle es "annual" o "biennial", indica el numero de mes (1-12) recomendado para volver a plantarla tras el final de su ciclo (ej. semillero de tomate en marzo). Si life_cycle es "perennial", pon null.
+- replanting_notes: si life_cycle es "annual" o "biennial", 1-2 frases sobre como/cuando replantarla la siguiente temporada. Si es "perennial", explica brevemente que no hace falta replantarla salvo trasplante a maceta mayor.
 - Todos los textos en espanol, tono cercano y practico, 1-3 frases por campo de notas.`;
 
   const result = await model.generateContent(prompt);

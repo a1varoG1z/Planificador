@@ -6,6 +6,7 @@ const COLORS = ['#16a34a', '#4ade80', '#86efac', '#15803d', '#166534', '#22c55e'
 
 interface Props {
   totalPlants: number;
+  archivedPlants: number;
   totalGardens: number;
   plantsPerGarden: { name: string; value: number }[];
   speciesDistribution: { name: string; value: number }[];
@@ -19,6 +20,7 @@ const TASK_LABELS = { watering: 'Riego', fertilizing: 'Abono', pruning: 'Poda' }
 
 export function StatsCharts({
   totalPlants,
+  archivedPlants,
   totalGardens,
   plantsPerGarden,
   speciesDistribution,
@@ -35,9 +37,10 @@ export function StatsCharts({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3">
-        <StatTile label="Plantas totales" value={totalPlants} />
+      <div className="grid grid-cols-3 gap-3">
+        <StatTile label="Plantas activas" value={totalPlants} />
         <StatTile label="Jardines" value={totalGardens} />
+        <StatTile label="Archivadas" value={archivedPlants} />
       </div>
 
       {(overdueByType.watering + overdueByType.fertilizing + overdueByType.pruning) > 0 && (

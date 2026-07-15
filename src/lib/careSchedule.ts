@@ -1,12 +1,19 @@
-import type { CareProfile, Plant, TaskType } from './types';
+import type { CareProfile, Plant, ReplantingReminder, TaskType } from './types';
+
+export type CalendarTaskType = TaskType | 'replant';
 
 export interface CalendarTask {
   plantId: string;
   gardenId: string;
   plantName: string;
-  taskType: TaskType;
+  taskType: CalendarTaskType;
   dueDate: string; // YYYY-MM-DD
   overdue: boolean;
+  replant?: {
+    reminderId: string;
+    scientificName: string | null;
+    commonName: string | null;
+  };
 }
 
 function startOfDay(date: Date): Date {
@@ -62,13 +69,14 @@ function expandOccurrences(
   return occurrences;
 }
 
-const TASK_LABELS: Record<TaskType, string> = {
+const TASK_LABELS: Record<CalendarTaskType, string> = {
   watering: 'Regar',
   fertilizing: 'Abonar',
   pruning: 'Podar',
+  replant: 'Volver a plantar',
 };
 
-export function taskLabel(type: TaskType): string {
+export function taskLabel(type: CalendarTaskType): string {
   return TASK_LABELS[type];
 }
 
@@ -109,6 +117,32 @@ export function buildCalendarTasks(
   }
 
   return tasks.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+}
+
+/** Convierte recordatorios de replantacion en tareas de calendario. */
+export function replantingTasksFromReminders(reminders: ReplantingReminder[]): CalendarTask[] {
+  const today = startOfDay(new Date());
+  return reminders.map((r) => ({
+    plantId: r.source_plant_id ?? r.id,
+    gardenId: r.garden_id,
+    plantName: r.species_common_name || r.species_scientific_name || 'Planta',
+    taskType: 'replant' as const,
+    dueDate: r.remind_date,
+    overdue: startOfDay(new Date(r.remind_date)) < today,
+    replant: {
+      reminderId: r.id,
+      scientificName: r.species_scientific_name,
+      commonName: r.species_common_name,
+    },
+  }));
+}
+
+/** Proxima fecha (dia 1) en la que cae el mes indicado (1-12), este ano o el que viene. */
+export function nextMonthOccurrence(month: number, from: Date = new Date()): Date {
+  const today = startOfDay(from);
+  const thisYear = new Date(today.getFullYear(), month - 1, 1);
+  if (thisYear >= today) return thisYear;
+  return new Date(today.getFullYear() + 1, month - 1, 1);
 }
 
 export function monthRange(year: number, month: number): { start: Date; end: Date } {

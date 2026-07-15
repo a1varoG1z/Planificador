@@ -14,6 +14,7 @@ export async function POST(request: Request) {
   const {
     gardenId,
     photoUrl,
+    photos, // opcional: [{ url, organ }] para guardar el historial de fotos de identificacion
     speciesScientificName,
     speciesCommonName,
     family,
@@ -26,6 +27,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Faltan gardenId o speciesScientificName' }, { status: 400 });
   }
 
+  const photoList: { url: string; organ?: string }[] = photos ?? (photoUrl ? [{ url: photoUrl }] : []);
+  const coverPhotoUrl = photoUrl || photoList[0]?.url || null;
+
   const { data: plant, error: plantError } = await supabase
     .from('plants')
     .insert({
@@ -34,7 +38,7 @@ export async function POST(request: Request) {
       species_scientific_name: speciesScientificName,
       species_common_name: speciesCommonName || null,
       family: family || null,
-      photo_url: photoUrl || null,
+      photo_url: coverPhotoUrl,
       identification_source: identificationSource || 'manual',
       identification_score: identificationScore ?? null,
     })
@@ -43,6 +47,12 @@ export async function POST(request: Request) {
 
   if (plantError || !plant) {
     return NextResponse.json({ error: plantError?.message ?? 'No se pudo crear la planta' }, { status: 500 });
+  }
+
+  if (photoList.length > 0) {
+    await supabase.from('plant_photos').insert(
+      photoList.map((p) => ({ plant_id: plant.id, photo_url: p.url, organ: p.organ ?? null }))
+    );
   }
 
   try {

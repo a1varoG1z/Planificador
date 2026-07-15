@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
   try {
     const blob = await fetchImageAsBlob(photoUrl);
-    const results = await identifyWithPlantNet(blob, organ ?? 'auto');
+    const results = await identifyWithPlantNet([{ blob, organ: organ ?? 'auto' }]);
     const top = results[0];
 
     if (!top) {

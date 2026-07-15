@@ -8,7 +8,7 @@ export default async function PlantDetailPage({ params }: { params: { id: string
   const { data: plant } = await supabase.from('plants').select('*').eq('id', params.id).single();
   if (!plant) notFound();
 
-  const [{ data: careProfile }, { data: gardens }, { data: diagnoses }, { data: recommendations }] =
+  const [{ data: careProfile }, { data: gardens }, { data: diagnoses }, { data: recommendations }, { data: photos }] =
     await Promise.all([
       supabase.from('care_profiles').select('*').eq('plant_id', params.id).maybeSingle(),
       supabase.from('gardens').select('id, name').order('name'),
@@ -19,6 +19,7 @@ export default async function PlantDetailPage({ params }: { params: { id: string
         .eq('plant_id', params.id)
         .eq('dismissed', false)
         .order('created_at', { ascending: false }),
+      supabase.from('plant_photos').select('*').eq('plant_id', params.id).order('taken_at', { ascending: false }),
     ]);
 
   return (
@@ -28,6 +29,7 @@ export default async function PlantDetailPage({ params }: { params: { id: string
       gardens={gardens ?? []}
       diagnoses={diagnoses ?? []}
       recommendations={recommendations ?? []}
+      photos={photos ?? []}
     />
   );
 }

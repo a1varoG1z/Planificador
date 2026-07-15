@@ -1,4 +1,6 @@
 export type TaskType = 'watering' | 'fertilizing' | 'pruning';
+export type PlantStatus = 'active' | 'inactive';
+export type LifeCycle = 'annual' | 'biennial' | 'perennial';
 
 export interface Garden {
   id: string;
@@ -19,6 +21,7 @@ export interface Plant {
   identification_source: 'plantnet' | 'manual' | null;
   identification_score: number | null;
   notes: string | null;
+  status: PlantStatus;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -46,6 +49,9 @@ export interface CareProfile {
   propagation_notes: string | null;
   flowering_fruit_tips: string | null;
   toxicity_notes: string | null;
+  life_cycle: LifeCycle | null;
+  replant_month: number | null;
+  replanting_notes: string | null;
   source: 'perenual' | 'gemini' | 'hybrid' | 'manual' | null;
   raw_notes: string | null;
   generated_at: string;
@@ -112,4 +118,38 @@ export interface CareProfileDraft {
   propagation_notes: string | null;
   flowering_fruit_tips: string | null;
   toxicity_notes: string | null;
+  life_cycle: LifeCycle | null;
+  replant_month: number | null;
+  replanting_notes: string | null;
+}
+
+export interface PlantPhoto {
+  id: string;
+  plant_id: string;
+  photo_url: string;
+  organ: string | null;
+  caption: string | null;
+  taken_at: string;
+}
+
+export interface ReplantingReminder {
+  id: string;
+  garden_id: string;
+  source_plant_id: string | null;
+  species_scientific_name: string | null;
+  species_common_name: string | null;
+  remind_date: string;
+  notes: string | null;
+  dismissed: boolean;
+  created_at: string;
+}
+
+export interface ShoppingItem {
+  id: string;
+  item: string;
+  quantity: string | null;
+  notes: string | null;
+  plant_id: string | null;
+  done: boolean;
+  created_at: string;
 }

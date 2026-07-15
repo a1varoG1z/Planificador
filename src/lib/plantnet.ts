@@ -6,16 +6,23 @@ export interface PlantNetResult {
   score: number;
 }
 
-export async function identifyWithPlantNet(
-  imageBlob: Blob,
-  organ: 'leaf' | 'flower' | 'fruit' | 'bark' | 'auto' = 'auto'
-): Promise<PlantNetResult[]> {
+export type PlantOrgan = 'leaf' | 'flower' | 'fruit' | 'bark' | 'auto';
+
+export interface PlantNetImage {
+  blob: Blob;
+  organ: PlantOrgan;
+}
+
+export async function identifyWithPlantNet(images: PlantNetImage[]): Promise<PlantNetResult[]> {
   const apiKey = process.env.PLANTNET_API_KEY;
   if (!apiKey) throw new Error('Falta PLANTNET_API_KEY en las variables de entorno');
+  if (images.length === 0) throw new Error('No se ha proporcionado ninguna imagen');
 
   const form = new FormData();
-  form.append('images', imageBlob, 'photo.jpg');
-  form.append('organs', organ);
+  images.forEach((image, i) => {
+    form.append('images', image.blob, `photo-${i}.jpg`);
+    form.append('organs', image.organ);
+  });
 
   const url = `https://my-api.plantnet.org/v2/identify/all?api-key=${apiKey}&lang=es&no-reject=false`;
 

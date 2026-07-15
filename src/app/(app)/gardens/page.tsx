@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { CreateGardenForm } from '@/components/CreateGardenForm';
+import { NotificationsToggle } from '@/components/NotificationsToggle';
 
 export default async function GardensPage() {
   const supabase = createClient();
@@ -12,6 +13,8 @@ export default async function GardensPage() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-bold text-leaf-800">Tus jardines</h1>
+
+      <NotificationsToggle />
 
       {gardens?.length === 0 && (
         <p className="text-sm text-leaf-500">Aun no tienes ningun jardin. Crea el primero para empezar a anadir plantas.</p>

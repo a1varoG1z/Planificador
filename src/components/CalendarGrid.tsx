@@ -4,15 +4,19 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { taskLabel } from '@/lib/careSchedule';
-import type { CalendarTask } from '@/lib/careSchedule';
-import type { TaskType } from '@/lib/types';
+import type { CalendarTask, CalendarTaskType } from '@/lib/careSchedule';
 
 const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
-const TASK_ICON: Record<TaskType, string> = { watering: '💧', fertilizing: '🌱', pruning: '✂️' };
+const TASK_ICON: Record<CalendarTaskType, string> = {
+  watering: '💧',
+  fertilizing: '🌱',
+  pruning: '✂️',
+  replant: '🔁',
+};
 
 export function CalendarGrid({ year, month, tasks }: { year: number; month: number; tasks: CalendarTask[] }) {
   const router = useRouter();
@@ -33,6 +37,7 @@ export function CalendarGrid({ year, month, tasks }: { year: number; month: numb
   const next = month === 11 ? { y: year + 1, m: 0 } : { y: year, m: month + 1 };
 
   async function markDone(task: CalendarTask) {
+    if (task.taskType === 'replant') return;
     const today = new Date().toISOString().slice(0, 10);
     const field = `${task.taskType}_last_done`;
     await supabase.from('care_profiles').update({ [field]: today }).eq('plant_id', task.plantId);
@@ -76,18 +81,33 @@ export function CalendarGrid({ year, month, tasks }: { year: number; month: numb
               }`}
             >
               <span className={`text-[10px] ${isToday ? 'font-bold text-leaf-700' : 'text-leaf-400'}`}>{day}</span>
-              {dayTasks.slice(0, 3).map((t, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => markDone(t)}
-                  title={`${taskLabel(t.taskType)} · ${t.plantName}`}
-                  className={`truncate rounded px-1 text-left leading-tight ${
-                    t.overdue ? 'bg-red-100 text-red-700' : 'bg-leaf-50 text-leaf-700'
-                  }`}
-                >
-                  {TASK_ICON[t.taskType]} {t.plantName}
-                </button>
-              ))}
+              {dayTasks.slice(0, 3).map((t, idx) =>
+                t.taskType === 'replant' ? (
+                  <Link
+                    key={idx}
+                    href={`/plants/new?gardenId=${t.gardenId}&scientificName=${encodeURIComponent(
+                      t.replant?.scientificName ?? ''
+                    )}&commonName=${encodeURIComponent(t.replant?.commonName ?? '')}`}
+                    title={`${taskLabel(t.taskType)} · ${t.plantName}`}
+                    className={`truncate rounded px-1 text-left leading-tight ${
+                      t.overdue ? 'bg-amber-100 text-amber-700' : 'bg-leaf-50 text-leaf-700'
+                    }`}
+                  >
+                    {TASK_ICON[t.taskType]} {t.plantName}
+                  </Link>
+                ) : (
+                  <button
+                    key={idx}
+                    onClick={() => markDone(t)}
+                    title={`${taskLabel(t.taskType)} · ${t.plantName}`}
+                    className={`truncate rounded px-1 text-left leading-tight ${
+                      t.overdue ? 'bg-red-100 text-red-700' : 'bg-leaf-50 text-leaf-700'
+                    }`}
+                  >
+                    {TASK_ICON[t.taskType]} {t.plantName}
+                  </button>
+                )
+              )}
               {dayTasks.length > 3 && <span className="text-[10px] text-leaf-400">+{dayTasks.length - 3} mas</span>}
             </div>
           );
