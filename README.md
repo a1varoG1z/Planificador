@@ -148,6 +148,10 @@ dashboard de Supabase) y entra.
 16. **Calendario con detalle por dia**: al tocar cualquier dia se abre un panel con todas las
     tareas pendientes de ese dia (no solo el resumen de iconos), para marcarlas como hechas
     o ir a "Plantar ahora" en el caso de los recordatorios de replantacion.
+17. **Cosechas**: desde la ficha de cada planta se puede registrar lo recogido (un boton
+    rapido de "+1" o un formulario con cantidad/unidad/nota, ej. "3 kg de tomates"), con
+    historial. En Estadisticas se ve el total de cosechas del mes, el total acumulado y un
+    grafico de que plantas mas producen.
 
 ## Posibles mejoras futuras
 

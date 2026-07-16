@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { PhotoCapture } from './PhotoCapture';
 import { PlantPhotoGallery } from './PlantPhotoGallery';
-import type { CareProfile, Diagnosis, Plant, PlantPhoto, Recommendation, TaskType } from '@/lib/types';
+import { HarvestSection } from './HarvestSection';
+import type { CareProfile, Diagnosis, Harvest, Plant, PlantPhoto, Recommendation, TaskType } from '@/lib/types';
 
 interface Props {
   plant: Plant;
@@ -14,6 +15,7 @@ interface Props {
   diagnoses: Diagnosis[];
   recommendations: Recommendation[];
   photos: PlantPhoto[];
+  harvests: Harvest[];
 }
 
 const MONTH_NAMES = [
@@ -29,7 +31,7 @@ const TASKS: { type: TaskType; label: string; icon: string }[] = [
 
 const FIELD_LABEL = 'text-xs font-bold uppercase tracking-wide text-leaf-400';
 
-export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommendations, photos }: Props) {
+export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommendations, photos, harvests }: Props) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -355,6 +357,8 @@ export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommenda
       </section>
 
       <PlantPhotoGallery plantId={plant.id} photos={photos} />
+
+      <HarvestSection plantId={plant.id} harvests={harvests} />
 
       {/* Recomendaciones IA */}
       <section className="card">

@@ -8,19 +8,26 @@ export default async function PlantDetailPage({ params }: { params: { id: string
   const { data: plant } = await supabase.from('plants').select('*').eq('id', params.id).single();
   if (!plant) notFound();
 
-  const [{ data: careProfile }, { data: gardens }, { data: diagnoses }, { data: recommendations }, { data: photos }] =
-    await Promise.all([
-      supabase.from('care_profiles').select('*').eq('plant_id', params.id).maybeSingle(),
-      supabase.from('gardens').select('id, name').order('name'),
-      supabase.from('diagnoses').select('*').eq('plant_id', params.id).order('created_at', { ascending: false }),
-      supabase
-        .from('recommendations')
-        .select('*')
-        .eq('plant_id', params.id)
-        .eq('dismissed', false)
-        .order('created_at', { ascending: false }),
-      supabase.from('plant_photos').select('*').eq('plant_id', params.id).order('taken_at', { ascending: false }),
-    ]);
+  const [
+    { data: careProfile },
+    { data: gardens },
+    { data: diagnoses },
+    { data: recommendations },
+    { data: photos },
+    { data: harvests },
+  ] = await Promise.all([
+    supabase.from('care_profiles').select('*').eq('plant_id', params.id).maybeSingle(),
+    supabase.from('gardens').select('id, name').order('name'),
+    supabase.from('diagnoses').select('*').eq('plant_id', params.id).order('created_at', { ascending: false }),
+    supabase
+      .from('recommendations')
+      .select('*')
+      .eq('plant_id', params.id)
+      .eq('dismissed', false)
+      .order('created_at', { ascending: false }),
+    supabase.from('plant_photos').select('*').eq('plant_id', params.id).order('taken_at', { ascending: false }),
+    supabase.from('harvests').select('*').eq('plant_id', params.id).order('harvested_at', { ascending: false }),
+  ]);
 
   return (
     <PlantDetail
@@ -30,6 +37,7 @@ export default async function PlantDetailPage({ params }: { params: { id: string
       diagnoses={diagnoses ?? []}
       recommendations={recommendations ?? []}
       photos={photos ?? []}
+      harvests={harvests ?? []}
     />
   );
 }

@@ -14,6 +14,9 @@ interface Props {
   overdueByType: { watering: number; fertilizing: number; pruning: number };
   healthyCount: number;
   unhealthyCount: number;
+  harvestsThisMonthCount: number;
+  harvestsAllTimeCount: number;
+  harvestsByPlant: { name: string; value: number }[];
 }
 
 const TASK_LABELS = { watering: 'Riego', fertilizing: 'Abono', pruning: 'Poda' };
@@ -28,6 +31,9 @@ export function StatsCharts({
   overdueByType,
   healthyCount,
   unhealthyCount,
+  harvestsThisMonthCount,
+  harvestsAllTimeCount,
+  harvestsByPlant,
 }: Props) {
   const completionsData = (Object.keys(completionsByType) as (keyof typeof completionsByType)[]).map((k) => ({
     name: TASK_LABELS[k],
@@ -111,6 +117,28 @@ export function StatsCharts({
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
+      )}
+
+      {harvestsAllTimeCount > 0 && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <StatTile label="🍅 Cosechas este mes" value={harvestsThisMonthCount} />
+            <StatTile label="🍅 Cosechas totales" value={harvestsAllTimeCount} />
+          </div>
+
+          {harvestsByPlant.length > 0 && (
+            <ChartCard title="🍅 Cosechas por planta">
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={harvestsByPlant}>
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#e5477a" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          )}
+        </>
       )}
     </div>
   );

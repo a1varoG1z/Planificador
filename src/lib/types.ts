@@ -167,3 +167,13 @@ export interface ShoppingItem {
   done: boolean;
   created_at: string;
 }
+
+export interface Harvest {
+  id: string;
+  plant_id: string;
+  quantity: number;
+  unit: string;
+  notes: string | null;
+  harvested_by: string | null;
+  harvested_at: string;
+}

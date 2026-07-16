@@ -416,6 +416,34 @@ create policy "household can delete shopping_list" on public.shopping_list
   for delete using (public.is_household_member());
 
 -- ──────────────────────────────────────────────────────────────
+-- Cosechas (frutos/verduras recogidos) y sus estadisticas
+-- ──────────────────────────────────────────────────────────────
+create table if not exists public.harvests (
+  id uuid primary key default gen_random_uuid(),
+  plant_id uuid not null references public.plants(id) on delete cascade,
+  quantity numeric not null default 1,
+  unit text not null default 'unidades',
+  notes text,
+  harvested_by uuid references auth.users(id) default auth.uid(),
+  harvested_at timestamptz not null default now()
+);
+
+create index if not exists harvests_plant_id_idx on public.harvests(plant_id);
+create index if not exists harvests_harvested_at_idx on public.harvests(harvested_at);
+
+alter table public.harvests enable row level security;
+
+drop policy if exists "household can read harvests" on public.harvests;
+create policy "household can read harvests" on public.harvests
+  for select using (public.is_household_member());
+drop policy if exists "household can write harvests" on public.harvests;
+create policy "household can write harvests" on public.harvests
+  for insert with check (public.is_household_member());
+drop policy if exists "household can delete harvests" on public.harvests;
+create policy "household can delete harvests" on public.harvests
+  for delete using (public.is_household_member());
+
+-- ──────────────────────────────────────────────────────────────
 -- Suscripciones a notificaciones push (punto 2)
 -- ──────────────────────────────────────────────────────────────
 create table if not exists public.push_subscriptions (

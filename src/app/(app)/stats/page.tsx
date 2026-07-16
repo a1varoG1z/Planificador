@@ -6,15 +6,17 @@ import type { CareProfile, Plant } from '@/lib/types';
 export default async function StatsPage() {
   const supabase = createClient();
 
-  const [{ data: gardens }, { data: plants }, { data: recentCompletions }, { data: diagnoses }] =
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+  const [{ data: gardens }, { data: plants }, { data: recentCompletions }, { data: diagnoses }, { data: harvests }] =
     await Promise.all([
       supabase.from('gardens').select('id, name'),
       supabase.from('plants').select('*, care_profiles(*)'),
-      supabase
-        .from('task_completions')
-        .select('task_type, completed_at')
-        .gte('completed_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+      supabase.from('task_completions').select('task_type, completed_at').gte('completed_at', monthStart.toISOString()),
       supabase.from('diagnoses').select('is_healthy'),
+      supabase
+        .from('harvests')
+        .select('quantity, unit, harvested_at, plants(nickname, species_common_name, species_scientific_name)'),
     ]);
 
   const plantsWithProfile = (plants ?? []).map((p) => ({
@@ -63,6 +65,20 @@ export default async function StatsPage() {
   const healthyCount = (diagnoses ?? []).filter((d) => d.is_healthy).length;
   const unhealthyCount = (diagnoses ?? []).length - healthyCount;
 
+  const harvestsThisMonthCount = (harvests ?? []).filter((h) => new Date(h.harvested_at) >= monthStart).length;
+  const harvestsAllTimeCount = (harvests ?? []).length;
+
+  const harvestCountByPlant = new Map<string, number>();
+  for (const h of harvests ?? []) {
+    const plantInfo = Array.isArray(h.plants) ? h.plants[0] : h.plants;
+    const key = plantInfo?.nickname || plantInfo?.species_common_name || plantInfo?.species_scientific_name || 'Planta';
+    harvestCountByPlant.set(key, (harvestCountByPlant.get(key) ?? 0) + 1);
+  }
+  const harvestsByPlant = [...harvestCountByPlant.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([name, value]) => ({ name, value }));
+
   return (
     <div className="flex flex-col gap-4">
       <h1 className="page-title">Estadísticas 📊</h1>
@@ -76,6 +92,9 @@ export default async function StatsPage() {
         overdueByType={overdueByType}
         healthyCount={healthyCount}
         unhealthyCount={unhealthyCount}
+        harvestsThisMonthCount={harvestsThisMonthCount}
+        harvestsAllTimeCount={harvestsAllTimeCount}
+        harvestsByPlant={harvestsByPlant}
       />
     </div>
   );
