@@ -57,9 +57,9 @@ const CARE_PROFILE_SCHEMA: Schema = {
     fertilizing_frequency_days_warm: { type: SchemaType.INTEGER, nullable: true },
     fertilizing_frequency_days_cool: { type: SchemaType.INTEGER, nullable: true },
     fertilizing_notes: { type: SchemaType.STRING },
-    pruning_frequency_days: { type: SchemaType.INTEGER },
     pruning_notes: { type: SchemaType.STRING },
     pruning_season: { type: SchemaType.STRING },
+    pruning_months: { type: SchemaType.ARRAY, items: { type: SchemaType.INTEGER } },
     light_notes: { type: SchemaType.STRING },
     temperature_min: { type: SchemaType.NUMBER },
     temperature_max: { type: SchemaType.NUMBER },
@@ -78,7 +78,7 @@ const CARE_PROFILE_SCHEMA: Schema = {
   required: [
     'watering_frequency_days', 'watering_frequency_days_warm', 'watering_frequency_days_cool', 'watering_notes',
     'fertilizing_frequency_days', 'fertilizing_notes',
-    'pruning_frequency_days', 'pruning_notes', 'pruning_season',
+    'pruning_notes', 'pruning_season', 'pruning_months',
     'light_notes', 'temperature_min', 'temperature_max', 'temperature_notes',
     'humidity_notes', 'soil_notes', 'propagation_notes', 'flowering_fruit_tips',
     'toxicity_notes', 'life_cycle', 'replanting_notes', 'bloom_notes',
@@ -142,8 +142,8 @@ Instrucciones para cada campo:
 - fertilizing_frequency_days: numero entero de dias, valor medio/tipico de abonado para mostrar como resumen rapido.
 - fertilizing_frequency_days_warm: numero entero de dias entre abonados en la epoca de crecimiento activo (normalmente primavera-verano).
 - fertilizing_frequency_days_cool: numero entero de dias entre abonados en la epoca fria/de reposo vegetativo. Si esta planta NO debe abonarse en esa epoca (lo habitual para la mayoria), pon null.
-- pruning_frequency_days: numero entero de dias entre podas, realista para esa ubicacion.
 - pruning_season: epoca del ano recomendada para podar en esa ubicacion (ej. "final de invierno, antes de brotes nuevos").
+- pruning_months: array con los 1-3 numeros de mes (1-12) en los que REALMENTE corresponde podar esta planta en "${location}" (ej. [2, 3] para final de invierno). La poda NO se repite cada X dias como el riego: es estacional, asi que este array debe reflejar solo los meses concretos en los que tiene sentido, no un rango amplio "por si acaso". Si esta planta no necesita poda (ej. la mayoria de plantas de interior sin lenosidad), deja el array vacio [].
 - propagation_notes: como reproducir la planta (esquejes, division, semilla, acodo...) paso a paso resumido.
 - flowering_fruit_tips: consejos concretos para mejorar la floracion o la fructificacion (abonado especifico, poda de formacion, luz, polinizacion manual si aplica).
 - toxicity_notes: si es toxica para personas o mascotas, y que sintomas provoca; si no lo es, indicalo brevemente.

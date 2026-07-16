@@ -312,9 +312,8 @@ export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommenda
             />
             <CareField
               label="✂️ Poda"
-              freq={careProfile.pruning_frequency_days}
               notes={careProfile.pruning_notes}
-              extra={careProfile.pruning_season ? `Época: ${careProfile.pruning_season}` : undefined}
+              extra={pruningExtra(careProfile.pruning_months, careProfile.pruning_season)}
             />
             <CareField label="☀️ Luz" notes={careProfile.light_notes} />
             <CareField
@@ -435,6 +434,16 @@ function seasonalExtra(warm: number | null, cool: number | null): string | undef
   const warmText = warm ? `cada ${warm} días` : 'pausado';
   const coolText = cool ? `cada ${cool} días` : 'pausado';
   return `☀️ Época cálida (abr-sep): ${warmText} · ❄️ Época fría (oct-mar): ${coolText}`;
+}
+
+function pruningExtra(months: number[] | undefined, season: string | null): string | undefined {
+  if (!months || months.length === 0) return season ? `Época: ${season}` : undefined;
+  const monthNames = months
+    .slice()
+    .sort((a, b) => a - b)
+    .map((m) => MONTH_NAMES[m - 1])
+    .join(', ');
+  return `Podar en: ${monthNames}`;
 }
 
 function CareField({

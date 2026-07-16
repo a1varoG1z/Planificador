@@ -141,6 +141,13 @@ dashboard de Supabase) y entra.
     calendario calcula automaticamente que frecuencia toca segun el mes. No hay integracion
     con una API de tiempo real: la estacionalidad se basa en el mes del ano y el clima
     tipico de la ubicacion del jardin, no en la temperatura real de ese dia.
+15. **Poda por meses, no por intervalo**: a diferencia del riego/abono, la poda no se repite
+    cada X dias: el perfil guarda en que meses concretos corresponde podar (ej. "febrero,
+    marzo") y el calendario solo la muestra esos meses, una vez al ano (no vuelve a
+    aparecer si ya se marco como hecha ese mismo ciclo).
+16. **Calendario con detalle por dia**: al tocar cualquier dia se abre un panel con todas las
+    tareas pendientes de ese dia (no solo el resumen de iconos), para marcarlas como hechas
+    o ir a "Plantar ahora" en el caso de los recordatorios de replantacion.
 
 ## Posibles mejoras futuras
 

@@ -137,10 +137,13 @@ create table if not exists public.care_profiles (
   fertilizing_frequency_days_warm int,
   fertilizing_frequency_days_cool int,
 
-  pruning_frequency_days int,
+  pruning_frequency_days int, -- en desuso: la poda ya no se repite cada X dias, ver pruning_months
   pruning_notes text,
   pruning_last_done date,
   pruning_season text,
+  -- meses del ano (1-12) en los que corresponde podar; el calendario solo
+  -- genera la tarea de poda en esos meses, no como intervalo repetitivo
+  pruning_months int[] not null default '{}',
 
   light_notes text,
   temperature_min numeric,
@@ -186,6 +189,7 @@ alter table public.care_profiles add column if not exists watering_frequency_day
 alter table public.care_profiles add column if not exists watering_frequency_days_cool int;
 alter table public.care_profiles add column if not exists fertilizing_frequency_days_warm int;
 alter table public.care_profiles add column if not exists fertilizing_frequency_days_cool int;
+alter table public.care_profiles add column if not exists pruning_months int[] not null default '{}';
 
 alter table public.care_profiles enable row level security;
 

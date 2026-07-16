@@ -45,6 +45,7 @@ export interface CareProfile {
   pruning_notes: string | null;
   pruning_last_done: string | null;
   pruning_season: string | null;
+  pruning_months: number[];
   light_notes: string | null;
   temperature_min: number | null;
   temperature_max: number | null;
@@ -117,9 +118,9 @@ export interface CareProfileDraft {
   fertilizing_frequency_days_warm: number | null;
   fertilizing_frequency_days_cool: number | null;
   fertilizing_notes: string | null;
-  pruning_frequency_days: number | null;
   pruning_notes: string | null;
   pruning_season: string | null;
+  pruning_months: number[];
   light_notes: string | null;
   temperature_min: number | null;
   temperature_max: number | null;

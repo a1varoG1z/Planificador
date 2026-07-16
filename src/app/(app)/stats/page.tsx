@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { nextDueDate, seasonalFrequencyFor } from '@/lib/careSchedule';
+import { nextDueDate, nextPruningDueDate, seasonalFrequencyFor } from '@/lib/careSchedule';
 import { StatsCharts } from '@/components/StatsCharts';
 import type { CareProfile, Plant } from '@/lib/types';
 
@@ -52,10 +52,12 @@ export default async function StatsPage() {
   for (const p of activePlantsList) {
     const profile = p.care_profile;
     if (!profile) continue;
-    (['watering', 'fertilizing', 'pruning'] as const).forEach((type) => {
+    (['watering', 'fertilizing'] as const).forEach((type) => {
       const due = nextDueDate(profile[`${type}_last_done` as const], seasonalFrequencyFor(profile, type), p.created_at);
       if (due && due < today) overdueByType[type] += 1;
     });
+    const pruningDue = nextPruningDueDate(profile.pruning_last_done, profile.pruning_months, today);
+    if (pruningDue && pruningDue < today) overdueByType.pruning += 1;
   }
 
   const healthyCount = (diagnoses ?? []).filter((d) => d.is_healthy).length;

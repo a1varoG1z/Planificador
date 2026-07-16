@@ -29,22 +29,18 @@ function isWarmMonth(date: Date): boolean {
   return WARM_MONTHS.has(date.getMonth() + 1);
 }
 
-/** Extrae la frecuencia estacional de un perfil para un tipo de tarea (riego/abono/poda). */
-export function seasonalFrequencyFor(profile: CareProfile, type: TaskType): SeasonalFrequency {
+/** Extrae la frecuencia estacional de un perfil para riego/abono (no aplica a poda, ver pruning_months). */
+export function seasonalFrequencyFor(profile: CareProfile, type: 'watering' | 'fertilizing'): SeasonalFrequency {
   if (type === 'watering') {
     return {
       warm: profile.watering_frequency_days_warm ?? profile.watering_frequency_days,
       cool: profile.watering_frequency_days_cool ?? profile.watering_frequency_days,
     };
   }
-  if (type === 'fertilizing') {
-    return {
-      warm: profile.fertilizing_frequency_days_warm ?? profile.fertilizing_frequency_days,
-      cool: profile.fertilizing_frequency_days_cool ?? profile.fertilizing_frequency_days,
-    };
-  }
-  // La poda no varia por temporada (ya tiene su propia epoca recomendada en pruning_season).
-  return { warm: profile.pruning_frequency_days, cool: profile.pruning_frequency_days };
+  return {
+    warm: profile.fertilizing_frequency_days_warm ?? profile.fertilizing_frequency_days,
+    cool: profile.fertilizing_frequency_days_cool ?? profile.fertilizing_frequency_days,
+  };
 }
 
 function startOfDay(date: Date): Date {
@@ -115,6 +111,48 @@ function expandOccurrences(
   return occurrences;
 }
 
+/** true si `lastDone` cae en un mes de `months` durante el mismo ano que `date` (poda ya hecha este ciclo). */
+function alreadyPrunedThisWindow(lastDone: string | null, months: number[], date: Date): boolean {
+  if (!lastDone) return false;
+  const done = new Date(lastDone);
+  return done.getFullYear() === date.getFullYear() && months.includes(done.getMonth() + 1);
+}
+
+/** Ocurrencias de poda dentro de un rango: una por cada mes aplicable, salvo que ya se haya podado ese ciclo. */
+function pruningOccurrences(lastDone: string | null, months: number[], rangeStart: Date, rangeEnd: Date): Date[] {
+  if (!months || months.length === 0) return [];
+
+  const occurrences: Date[] = [];
+  let cursor = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
+  let guard = 0;
+  while (cursor <= rangeEnd && guard < 24) {
+    const monthNum = cursor.getMonth() + 1;
+    if (months.includes(monthNum)) {
+      const date = new Date(cursor.getFullYear(), cursor.getMonth(), 15);
+      if (date >= rangeStart && date <= rangeEnd && !alreadyPrunedThisWindow(lastDone, months, date)) {
+        occurrences.push(date);
+      }
+    }
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    guard++;
+  }
+  return occurrences;
+}
+
+/** Proxima fecha de poda pendiente (para estadisticas/notificaciones), o null si no aplica o ya esta hecha. */
+export function nextPruningDueDate(lastDone: string | null, months: number[], from: Date = new Date()): Date | null {
+  if (!months || months.length === 0) return null;
+  const start = startOfDay(from);
+  for (let i = 0; i < 24; i++) {
+    const cursor = new Date(start.getFullYear(), start.getMonth() + i, 15);
+    const monthNum = cursor.getMonth() + 1;
+    if (!months.includes(monthNum)) continue;
+    if (alreadyPrunedThisWindow(lastDone, months, cursor)) continue;
+    return cursor;
+  }
+  return null;
+}
+
 const TASK_LABELS: Record<CalendarTaskType, string> = {
   watering: 'Regar',
   fertilizing: 'Abonar',
@@ -141,10 +179,9 @@ export function buildCalendarTasks(
 
     const plantName = plant.nickname || plant.species_common_name || plant.species_scientific_name || 'Planta';
 
-    const specs: Array<[TaskType, string | null]> = [
+    const specs: Array<['watering' | 'fertilizing', string | null]> = [
       ['watering', profile.watering_last_done],
       ['fertilizing', profile.fertilizing_last_done],
-      ['pruning', profile.pruning_last_done],
     ];
 
     for (const [taskType, lastDone] of specs) {
@@ -160,6 +197,17 @@ export function buildCalendarTasks(
           overdue: date < today,
         });
       }
+    }
+
+    for (const date of pruningOccurrences(profile.pruning_last_done, profile.pruning_months, rangeStart, rangeEnd)) {
+      tasks.push({
+        plantId: plant.id,
+        gardenId: plant.garden_id,
+        plantName,
+        taskType: 'pruning',
+        dueDate: toIsoDate(date),
+        overdue: date < today,
+      });
     }
   }
 

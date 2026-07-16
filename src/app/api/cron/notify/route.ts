@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { nextDueDate, seasonalFrequencyFor } from '@/lib/careSchedule';
+import { nextDueDate, nextPruningDueDate, seasonalFrequencyFor } from '@/lib/careSchedule';
 import { sendPushToHousehold } from '@/lib/webpush';
 import type { CareProfile, Plant, TaskType } from '@/lib/types';
 
@@ -33,13 +33,20 @@ export async function GET(request: Request) {
 
     const plantName = plant.nickname || plant.species_common_name || plant.species_scientific_name || 'Planta';
 
-    (['watering', 'fertilizing', 'pruning'] as TaskType[]).forEach((type) => {
+    (['watering', 'fertilizing'] as const).forEach((type) => {
       const due = nextDueDate(profile[`${type}_last_done` as const], seasonalFrequencyFor(profile, type), plant.created_at);
       if (!due) return;
       const dueIso = due.toISOString().slice(0, 10);
       if (dueIso === todayIso) dueTodayByType[type].push(plantName);
       else if (due < today) overdueCount += 1;
     });
+
+    const pruningDue = nextPruningDueDate(profile.pruning_last_done, profile.pruning_months, today);
+    if (pruningDue) {
+      const dueIso = pruningDue.toISOString().slice(0, 10);
+      if (dueIso === todayIso) dueTodayByType.pruning.push(plantName);
+      else if (pruningDue < today) overdueCount += 1;
+    }
   }
 
   const replantNames = (reminders ?? []).map((r) => r.species_common_name || r.species_scientific_name || 'planta');
