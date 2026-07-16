@@ -124,10 +124,18 @@ create table if not exists public.care_profiles (
   watering_frequency_days int,
   watering_notes text,
   watering_last_done date,
+  -- frecuencia distinta segun epoca calida (abril-septiembre) o fria
+  -- (octubre-marzo) del jardin; si son null se usa watering_frequency_days
+  -- para ambas (perfiles antiguos sin regenerar)
+  watering_frequency_days_warm int,
+  watering_frequency_days_cool int,
 
   fertilizing_frequency_days int,
   fertilizing_notes text,
   fertilizing_last_done date,
+  -- null en una temporada significa "no abonar" esa epoca (ej. invierno)
+  fertilizing_frequency_days_warm int,
+  fertilizing_frequency_days_cool int,
 
   pruning_frequency_days int,
   pruning_notes text,
@@ -174,6 +182,10 @@ alter table public.care_profiles drop constraint if exists care_profiles_bloom_m
 alter table public.care_profiles add constraint care_profiles_bloom_month_check
   check (bloom_month between 1 and 12);
 alter table public.care_profiles add column if not exists bloom_notes text;
+alter table public.care_profiles add column if not exists watering_frequency_days_warm int;
+alter table public.care_profiles add column if not exists watering_frequency_days_cool int;
+alter table public.care_profiles add column if not exists fertilizing_frequency_days_warm int;
+alter table public.care_profiles add column if not exists fertilizing_frequency_days_cool int;
 
 alter table public.care_profiles enable row level security;
 

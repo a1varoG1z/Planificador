@@ -135,6 +135,12 @@ dashboard de Supabase) y entra.
 13. **Prediccion de floracion**: para plantas que dan flor o fruto vistoso (ej. ciclamen,
     tomatera, limonero), el perfil incluye una estimacion del proximo mes de floracion o
     fructificacion, adaptada tambien a la ubicacion del jardin.
+14. **Riego y abono estacionales**: el perfil incluye una frecuencia distinta para la epoca
+    calida (abril-septiembre) y la fria (octubre-marzo), en vez de un unico numero fijo todo
+    el ano. El abono puede quedar en pausa en invierno si la planta no lo necesita. El
+    calendario calcula automaticamente que frecuencia toca segun el mes. No hay integracion
+    con una API de tiempo real: la estacionalidad se basa en el mes del ano y el clima
+    tipico de la ubicacion del jardin, no en la temperatura real de ese dia.
 
 ## Posibles mejoras futuras
 

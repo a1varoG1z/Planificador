@@ -16,6 +16,37 @@ export interface CalendarTask {
   };
 }
 
+/** Frecuencia en dias, distinta segun epoca calida o fria del ano. null = tarea pausada esa epoca. */
+export interface SeasonalFrequency {
+  warm: number | null;
+  cool: number | null;
+}
+
+// Asume hemisferio norte (publico objetivo: Espana). Abril-Septiembre = calido, Octubre-Marzo = frio.
+const WARM_MONTHS = new Set([4, 5, 6, 7, 8, 9]);
+
+function isWarmMonth(date: Date): boolean {
+  return WARM_MONTHS.has(date.getMonth() + 1);
+}
+
+/** Extrae la frecuencia estacional de un perfil para un tipo de tarea (riego/abono/poda). */
+export function seasonalFrequencyFor(profile: CareProfile, type: TaskType): SeasonalFrequency {
+  if (type === 'watering') {
+    return {
+      warm: profile.watering_frequency_days_warm ?? profile.watering_frequency_days,
+      cool: profile.watering_frequency_days_cool ?? profile.watering_frequency_days,
+    };
+  }
+  if (type === 'fertilizing') {
+    return {
+      warm: profile.fertilizing_frequency_days_warm ?? profile.fertilizing_frequency_days,
+      cool: profile.fertilizing_frequency_days_cool ?? profile.fertilizing_frequency_days,
+    };
+  }
+  // La poda no varia por temporada (ya tiene su propia epoca recomendada en pruning_season).
+  return { warm: profile.pruning_frequency_days, cool: profile.pruning_frequency_days };
+}
+
 function startOfDay(date: Date): Date {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -32,39 +63,54 @@ function toIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** Proxima fecha en la que toca una tarea, o null si no hay frecuencia definida. */
-export function nextDueDate(
-  lastDone: string | null,
-  frequencyDays: number | null,
-  fallbackAnchor: string
-): Date | null {
-  if (!frequencyDays || frequencyDays <= 0) return null;
+function frequencyForDate(date: Date, freq: SeasonalFrequency): number | null {
+  return isWarmMonth(date) ? freq.warm : freq.cool;
+}
+
+/** Siguiente fecha en la que toca la tarea a partir de `from`, saltando epocas en las que esta pausada (frecuencia null). */
+function nextOccurrence(from: Date, freq: SeasonalFrequency): Date {
+  const currentFreq = frequencyForDate(from, freq);
+  if (currentFreq && currentFreq > 0) return addDays(from, currentFreq);
+
+  // Tarea pausada en la temporada de `from`: buscar el primer dia en que se reactive.
+  let d = addDays(from, 1);
+  for (let guard = 0; guard < 400; guard++) {
+    if (frequencyForDate(d, freq)) return d;
+    d = addDays(d, 1);
+  }
+  return d;
+}
+
+/** Proxima fecha en la que toca una tarea, o null si no hay frecuencia definida en ninguna epoca. */
+export function nextDueDate(lastDone: string | null, freq: SeasonalFrequency, fallbackAnchor: string): Date | null {
+  if (!freq.warm && !freq.cool) return null;
   const base = startOfDay(new Date(lastDone ?? fallbackAnchor));
-  return addDays(base, frequencyDays);
+  return nextOccurrence(base, freq);
 }
 
 function expandOccurrences(
   lastDone: string | null,
-  frequencyDays: number | null,
+  freq: SeasonalFrequency,
   fallbackAnchor: string,
   rangeStart: Date,
   rangeEnd: Date
 ): Date[] {
-  if (!frequencyDays || frequencyDays <= 0) return [];
-  const base = startOfDay(new Date(lastDone ?? fallbackAnchor));
-  let current = addDays(base, frequencyDays);
+  if (!freq.warm && !freq.cool) return [];
 
-  if (current < rangeStart) {
-    const diffDays = Math.floor((rangeStart.getTime() - current.getTime()) / 86_400_000);
-    const steps = Math.floor(diffDays / frequencyDays);
-    current = addDays(current, steps * frequencyDays);
-    while (current < rangeStart) current = addDays(current, frequencyDays);
+  let current = nextOccurrence(startOfDay(new Date(lastDone ?? fallbackAnchor)), freq);
+
+  let guard = 0;
+  while (current < rangeStart && guard < 2000) {
+    current = nextOccurrence(current, freq);
+    guard++;
   }
 
   const occurrences: Date[] = [];
-  while (current <= rangeEnd) {
+  guard = 0;
+  while (current <= rangeEnd && guard < 500) {
     occurrences.push(current);
-    current = addDays(current, frequencyDays);
+    current = nextOccurrence(current, freq);
+    guard++;
   }
   return occurrences;
 }
@@ -95,14 +141,15 @@ export function buildCalendarTasks(
 
     const plantName = plant.nickname || plant.species_common_name || plant.species_scientific_name || 'Planta';
 
-    const specs: Array<[TaskType, string | null, number | null]> = [
-      ['watering', profile.watering_last_done, profile.watering_frequency_days],
-      ['fertilizing', profile.fertilizing_last_done, profile.fertilizing_frequency_days],
-      ['pruning', profile.pruning_last_done, profile.pruning_frequency_days],
+    const specs: Array<[TaskType, string | null]> = [
+      ['watering', profile.watering_last_done],
+      ['fertilizing', profile.fertilizing_last_done],
+      ['pruning', profile.pruning_last_done],
     ];
 
-    for (const [taskType, lastDone, frequency] of specs) {
-      const occurrences = expandOccurrences(lastDone, frequency, plant.created_at, rangeStart, rangeEnd);
+    for (const [taskType, lastDone] of specs) {
+      const freq = seasonalFrequencyFor(profile, taskType);
+      const occurrences = expandOccurrences(lastDone, freq, plant.created_at, rangeStart, rangeEnd);
       for (const date of occurrences) {
         tasks.push({
           plantId: plant.id,

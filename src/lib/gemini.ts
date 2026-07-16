@@ -50,8 +50,12 @@ const CARE_PROFILE_SCHEMA: Schema = {
   type: SchemaType.OBJECT,
   properties: {
     watering_frequency_days: { type: SchemaType.INTEGER },
+    watering_frequency_days_warm: { type: SchemaType.INTEGER },
+    watering_frequency_days_cool: { type: SchemaType.INTEGER },
     watering_notes: { type: SchemaType.STRING },
     fertilizing_frequency_days: { type: SchemaType.INTEGER },
+    fertilizing_frequency_days_warm: { type: SchemaType.INTEGER, nullable: true },
+    fertilizing_frequency_days_cool: { type: SchemaType.INTEGER, nullable: true },
     fertilizing_notes: { type: SchemaType.STRING },
     pruning_frequency_days: { type: SchemaType.INTEGER },
     pruning_notes: { type: SchemaType.STRING },
@@ -72,7 +76,7 @@ const CARE_PROFILE_SCHEMA: Schema = {
     bloom_notes: { type: SchemaType.STRING },
   },
   required: [
-    'watering_frequency_days', 'watering_notes',
+    'watering_frequency_days', 'watering_frequency_days_warm', 'watering_frequency_days_cool', 'watering_notes',
     'fertilizing_frequency_days', 'fertilizing_notes',
     'pruning_frequency_days', 'pruning_notes', 'pruning_season',
     'light_notes', 'temperature_min', 'temperature_max', 'temperature_notes',
@@ -131,8 +135,14 @@ Ubicacion del jardin: ${location}
 ${hintsBlock}
 
 Instrucciones para cada campo:
-- Ajusta frecuencias, epocas y temperaturas al clima real de "${location}" (heladas, epoca de lluvias, veranos secos o humedos, etc.), no des valores genericos de manual.
-- watering_frequency_days / fertilizing_frequency_days / pruning_frequency_days: numero entero de dias entre cada tarea, realista para esa ubicacion.
+- Ajusta frecuencias, epocas y temperaturas al clima real de "${location}" (heladas, epoca de lluvias, veranos secos o humedos, etc.), no des valores genericos de manual. Asume hemisferio norte: temporada calida = abril-septiembre, temporada fria = octubre-marzo.
+- watering_frequency_days: numero entero de dias, valor MEDIO/tipico de riego para mostrar como resumen rapido.
+- watering_frequency_days_warm: numero entero de dias entre riegos en la epoca calida/de mas calor en "${location}" (normalmente mas frecuente, por mayor evaporacion).
+- watering_frequency_days_cool: numero entero de dias entre riegos en la epoca fria en "${location}" (normalmente menos frecuente). Debe ser mayor que watering_frequency_days_warm salvo que la planta sea de riego constante todo el ano.
+- fertilizing_frequency_days: numero entero de dias, valor medio/tipico de abonado para mostrar como resumen rapido.
+- fertilizing_frequency_days_warm: numero entero de dias entre abonados en la epoca de crecimiento activo (normalmente primavera-verano).
+- fertilizing_frequency_days_cool: numero entero de dias entre abonados en la epoca fria/de reposo vegetativo. Si esta planta NO debe abonarse en esa epoca (lo habitual para la mayoria), pon null.
+- pruning_frequency_days: numero entero de dias entre podas, realista para esa ubicacion.
 - pruning_season: epoca del ano recomendada para podar en esa ubicacion (ej. "final de invierno, antes de brotes nuevos").
 - propagation_notes: como reproducir la planta (esquejes, division, semilla, acodo...) paso a paso resumido.
 - flowering_fruit_tips: consejos concretos para mejorar la floracion o la fructificacion (abonado especifico, poda de formacion, luz, polinizacion manual si aplica).

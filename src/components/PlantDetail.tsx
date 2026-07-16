@@ -295,11 +295,20 @@ export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommenda
 
         {careProfile && (
           <div className="flex flex-col gap-3 text-sm">
-            <CareField label="💧 Riego" freq={careProfile.watering_frequency_days} notes={careProfile.watering_notes} />
+            <CareField
+              label="💧 Riego"
+              freq={careProfile.watering_frequency_days}
+              notes={careProfile.watering_notes}
+              extra={seasonalExtra(careProfile.watering_frequency_days_warm, careProfile.watering_frequency_days_cool)}
+            />
             <CareField
               label="🌱 Abono"
               freq={careProfile.fertilizing_frequency_days}
               notes={careProfile.fertilizing_notes}
+              extra={seasonalExtra(
+                careProfile.fertilizing_frequency_days_warm,
+                careProfile.fertilizing_frequency_days_cool
+              )}
             />
             <CareField
               label="✂️ Poda"
@@ -419,6 +428,13 @@ export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommenda
       </section>
     </div>
   );
+}
+
+function seasonalExtra(warm: number | null, cool: number | null): string | undefined {
+  if (warm == null && cool == null) return undefined;
+  const warmText = warm ? `cada ${warm} días` : 'pausado';
+  const coolText = cool ? `cada ${cool} días` : 'pausado';
+  return `☀️ Época cálida (abr-sep): ${warmText} · ❄️ Época fría (oct-mar): ${coolText}`;
 }
 
 function CareField({

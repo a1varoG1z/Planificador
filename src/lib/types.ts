@@ -32,9 +32,13 @@ export interface CareProfile {
   id: string;
   plant_id: string;
   watering_frequency_days: number | null;
+  watering_frequency_days_warm: number | null;
+  watering_frequency_days_cool: number | null;
   watering_notes: string | null;
   watering_last_done: string | null;
   fertilizing_frequency_days: number | null;
+  fertilizing_frequency_days_warm: number | null;
+  fertilizing_frequency_days_cool: number | null;
   fertilizing_notes: string | null;
   fertilizing_last_done: string | null;
   pruning_frequency_days: number | null;
@@ -106,8 +110,12 @@ export interface Recommendation {
 
 export interface CareProfileDraft {
   watering_frequency_days: number | null;
+  watering_frequency_days_warm: number | null;
+  watering_frequency_days_cool: number | null;
   watering_notes: string | null;
   fertilizing_frequency_days: number | null;
+  fertilizing_frequency_days_warm: number | null;
+  fertilizing_frequency_days_cool: number | null;
   fertilizing_notes: string | null;
   pruning_frequency_days: number | null;
   pruning_notes: string | null;
