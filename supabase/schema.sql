@@ -165,6 +165,11 @@ create table if not exists public.care_profiles (
   bloom_month int check (bloom_month between 1 and 12),
   bloom_notes text,
 
+  -- grados a partir de los cuales esta planta necesita riego extra si hace
+  -- calor y el sustrato lleva tiempo sin regarse; null = planta resistente
+  -- al calor/sequia (cactus, suculentas...), no necesita este aviso
+  heat_alert_threshold_c int,
+
   source text check (source in ('perenual', 'gemini', 'hybrid', 'manual')),
   raw_notes text,
   generated_at timestamptz not null default now(),
@@ -190,6 +195,7 @@ alter table public.care_profiles add column if not exists watering_frequency_day
 alter table public.care_profiles add column if not exists fertilizing_frequency_days_warm int;
 alter table public.care_profiles add column if not exists fertilizing_frequency_days_cool int;
 alter table public.care_profiles add column if not exists pruning_months int[] not null default '{}';
+alter table public.care_profiles add column if not exists heat_alert_threshold_c int;
 
 alter table public.care_profiles enable row level security;
 

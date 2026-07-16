@@ -152,6 +152,14 @@ dashboard de Supabase) y entra.
     rapido de "+1" o un formulario con cantidad/unidad/nota, ej. "3 kg de tomates"), con
     historial. En Estadisticas se ve el total de cosechas del mes, el total acumulado y un
     grafico de que plantas mas producen.
+18. **Alerta de calor**: en la seccion de riego de cada planta, si hace mucho calor en la
+    ubicacion del jardin (usando el tiempo real de [Open-Meteo](https://open-meteo.com/),
+    gratis y sin API key) y ademas ya ha pasado un tiempo prudencial desde el ultimo riego,
+    se muestra un aviso para regar antes de lo previsto. Solo aplica a plantas para las que
+    Gemini considera que tiene sentido (las resistentes al calor/sequia, como cactus o
+    suculentas, no lo generan). No hay sensor de humedad real: se aproxima combinando la
+    temperatura del dia con los dias transcurridos desde el ultimo riego respecto a lo
+    normal para esa planta.
 
 ## Posibles mejoras futuras
 

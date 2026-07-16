@@ -59,7 +59,8 @@ function toIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-function frequencyForDate(date: Date, freq: SeasonalFrequency): number | null {
+/** Frecuencia (dias) que corresponde a `freq` segun la temporada de `date`. */
+export function frequencyForDate(date: Date, freq: SeasonalFrequency): number | null {
   return isWarmMonth(date) ? freq.warm : freq.cool;
 }
 

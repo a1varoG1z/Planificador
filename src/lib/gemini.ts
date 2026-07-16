@@ -74,6 +74,7 @@ const CARE_PROFILE_SCHEMA: Schema = {
     replanting_notes: { type: SchemaType.STRING },
     bloom_month: { type: SchemaType.INTEGER, nullable: true },
     bloom_notes: { type: SchemaType.STRING },
+    heat_alert_threshold_c: { type: SchemaType.INTEGER, nullable: true },
   },
   required: [
     'watering_frequency_days', 'watering_frequency_days_warm', 'watering_frequency_days_cool', 'watering_notes',
@@ -152,6 +153,7 @@ Instrucciones para cada campo:
 - replanting_notes: si life_cycle es "annual" o "biennial", 1-2 frases sobre como/cuando replantarla la siguiente temporada. Si es "perennial", explica brevemente que no hace falta replantarla salvo trasplante a maceta mayor.
 - bloom_month: SOLO si esta planta da flor o fruto vistoso (ej. ciclamen, tomatera, limonero), numero de mes (1-12) en el que tipicamente alcanza su proxima floracion/fructificacion en esa ubicacion. Si la planta no florece de forma relevante (ej. planta de follaje), omitelo (null).
 - bloom_notes: si bloom_month tiene valor, 1-2 frases describiendo que esperar (color, duracion, como favorecerla). Si no aplica, explica brevemente por que (ej. "planta de follaje, sin floracion ornamental relevante").
+- heat_alert_threshold_c: numero entero de grados Celsius a partir del cual esta planta necesita riego extra si hace mucho calor y el sustrato lleva tiempo sin regarse (tipico 28-32 para plantas de necesidad de agua media/alta, como la mayoria de hortalizas o plantas de hoja). Si esta planta es resistente al calor y la sequia (cactus, suculentas, plantas mediterraneas de bajo riego como lavanda o romero), pon null: no necesita este aviso.
 - Todos los textos en espanol, tono cercano y practico, 1-3 frases por campo de notas.`;
 
   const result = await generateContentWithRetry(model, prompt);

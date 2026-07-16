@@ -8,6 +8,11 @@ import { PlantPhotoGallery } from './PlantPhotoGallery';
 import { HarvestSection } from './HarvestSection';
 import type { CareProfile, Diagnosis, Harvest, Plant, PlantPhoto, Recommendation, TaskType } from '@/lib/types';
 
+export interface HeatAlert {
+  tempC: number;
+  daysSinceWatered: number;
+}
+
 interface Props {
   plant: Plant;
   careProfile: CareProfile | null;
@@ -16,6 +21,7 @@ interface Props {
   recommendations: Recommendation[];
   photos: PlantPhoto[];
   harvests: Harvest[];
+  heatAlert: HeatAlert | null;
 }
 
 const MONTH_NAMES = [
@@ -31,7 +37,16 @@ const TASKS: { type: TaskType; label: string; icon: string }[] = [
 
 const FIELD_LABEL = 'text-xs font-bold uppercase tracking-wide text-leaf-400';
 
-export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommendations, photos, harvests }: Props) {
+export function PlantDetail({
+  plant,
+  careProfile,
+  gardens,
+  diagnoses,
+  recommendations,
+  photos,
+  harvests,
+  heatAlert,
+}: Props) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -297,6 +312,16 @@ export function PlantDetail({ plant, careProfile, gardens, diagnoses, recommenda
 
         {careProfile && (
           <div className="flex flex-col gap-3 text-sm">
+            {heatAlert && (
+              <div className="rounded-xl bg-amber-50 p-3">
+                <p className="font-bold text-amber-700">🔥 Alerta de calor: {Math.round(heatAlert.tempC)}°C</p>
+                <p className="text-amber-700">
+                  Llevas {heatAlert.daysSinceWatered} días sin regarla y hace mucho calor: el sustrato puede estar
+                  secándose más rápido de lo normal. Aunque no toque todavía según el calendario, comprueba si
+                  necesita agua hoy.
+                </p>
+              </div>
+            )}
             <CareField
               label="💧 Riego"
               freq={careProfile.watering_frequency_days}
