@@ -160,6 +160,14 @@ dashboard de Supabase) y entra.
     suculentas, no lo generan). No hay sensor de humedad real: se aproxima combinando la
     temperatura del dia con los dias transcurridos desde el ultimo riego respecto a lo
     normal para esa planta.
+19. **Jardineras**: dentro de un jardin se pueden crear "jardineras" (macetas/jardineras con
+    varias especies conviviendo), con su propia foto de conjunto y nombre (ej. "Jardinera
+    1"). Cada planta individual sigue necesitando su propia identificacion (PlantNet no
+    distingue varias especies en una sola foto), pero se agrupan visualmente bajo la
+    jardinera: al tocarla se ve su foto y todas las plantas que contiene. Una planta se
+    puede mover entre jardin/jardinera desde su ficha.
+20. **Navegacion**: desde la ficha de cualquier planta hay un boton para volver directamente
+    al jardin o jardinera desde el que se llego.
 
 ## Posibles mejoras futuras
 

@@ -68,11 +68,45 @@ create policy "household can delete gardens" on public.gardens
   for delete using (public.is_household_member());
 
 -- ──────────────────────────────────────────────────────────────
+-- Jardineras (agrupan varias plantas dentro de un jardin, con foto propia;
+-- utiles cuando varias especies conviven en una misma maceta/jardinera y no
+-- tiene sentido fotografiarlas por separado)
+-- ──────────────────────────────────────────────────────────────
+create table if not exists public.planters (
+  id uuid primary key default gen_random_uuid(),
+  garden_id uuid not null references public.gardens(id) on delete cascade,
+  name text not null,
+  description text,
+  photo_url text,
+  created_by uuid references auth.users(id) default auth.uid(),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists planters_garden_id_idx on public.planters(garden_id);
+
+alter table public.planters enable row level security;
+
+drop policy if exists "household can read planters" on public.planters;
+create policy "household can read planters" on public.planters
+  for select using (public.is_household_member());
+drop policy if exists "household can write planters" on public.planters;
+create policy "household can write planters" on public.planters
+  for insert with check (public.is_household_member());
+drop policy if exists "household can update planters" on public.planters;
+create policy "household can update planters" on public.planters
+  for update using (public.is_household_member()) with check (public.is_household_member());
+drop policy if exists "household can delete planters" on public.planters;
+create policy "household can delete planters" on public.planters
+  for delete using (public.is_household_member());
+
+-- ──────────────────────────────────────────────────────────────
 -- Plantas del jardin
 -- ──────────────────────────────────────────────────────────────
 create table if not exists public.plants (
   id uuid primary key default gen_random_uuid(),
   garden_id uuid not null references public.gardens(id) on delete cascade,
+  -- jardinera opcional a la que pertenece (varias plantas pueden compartir jardinera)
+  planter_id uuid references public.planters(id) on delete set null,
   nickname text,
   species_scientific_name text,
   species_common_name text,
@@ -90,9 +124,11 @@ create table if not exists public.plants (
 alter table public.plants add column if not exists status text not null default 'active';
 alter table public.plants drop constraint if exists plants_status_check;
 alter table public.plants add constraint plants_status_check check (status in ('active', 'inactive'));
+alter table public.plants add column if not exists planter_id uuid references public.planters(id) on delete set null;
 
 create index if not exists plants_garden_id_idx on public.plants(garden_id);
 create index if not exists plants_status_idx on public.plants(status);
+create index if not exists plants_planter_id_idx on public.plants(planter_id);
 
 alter table public.plants enable row level security;
 

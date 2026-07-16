@@ -7,7 +7,9 @@ import type { PlantNetResult, PlantOrgan } from '@/lib/plantnet';
 
 interface Props {
   gardens: { id: string; name: string }[];
+  planters: { id: string; name: string; garden_id: string }[];
   defaultGardenId?: string;
+  defaultPlanterId?: string;
   defaultScientificName?: string;
   defaultCommonName?: string;
 }
@@ -25,7 +27,14 @@ const ORGAN_OPTIONS: { value: PlantOrgan; label: string }[] = [
 
 const MAX_PHOTOS = 4;
 
-export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, defaultCommonName }: Props) {
+export function NewPlantForm({
+  gardens,
+  planters,
+  defaultGardenId,
+  defaultPlanterId,
+  defaultScientificName,
+  defaultCommonName,
+}: Props) {
   const router = useRouter();
   const prefilled = Boolean(defaultScientificName);
 
@@ -39,7 +48,10 @@ export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, 
   const [commonName, setCommonName] = useState(defaultCommonName ?? '');
   const [nickname, setNickname] = useState('');
   const [gardenId, setGardenId] = useState(defaultGardenId ?? gardens[0]?.id ?? '');
+  const [planterId, setPlanterId] = useState(defaultPlanterId ?? '');
   const [error, setError] = useState<string | null>(null);
+
+  const plantersForGarden = planters.filter((p) => p.garden_id === gardenId);
 
   function addPhoto(url: string) {
     setPhotos((prev) => [...prev, { url, organ: nextOrgan }]);
@@ -103,6 +115,7 @@ export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gardenId,
+          planterId: planterId || null,
           photos: photos.map((p) => ({ url: p.url, organ: p.organ })),
           nickname,
           speciesScientificName: scientificName,
@@ -245,7 +258,13 @@ export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, 
             onChange={(e) => setNickname(e.target.value)}
           />
 
-          <select value={gardenId} onChange={(e) => setGardenId(e.target.value)}>
+          <select
+            value={gardenId}
+            onChange={(e) => {
+              setGardenId(e.target.value);
+              setPlanterId('');
+            }}
+          >
             {gardens.length === 0 && <option value="">No hay jardines, crea uno primero</option>}
             {gardens.map((g) => (
               <option key={g.id} value={g.id}>
@@ -253,6 +272,17 @@ export function NewPlantForm({ gardens, defaultGardenId, defaultScientificName, 
               </option>
             ))}
           </select>
+
+          {plantersForGarden.length > 0 && (
+            <select value={planterId} onChange={(e) => setPlanterId(e.target.value)}>
+              <option value="">Sin jardinera (planta suelta)</option>
+              {plantersForGarden.map((p) => (
+                <option key={p.id} value={p.id}>
+                  🪴 {p.name}
+                </option>
+              ))}
+            </select>
+          )}
 
           <button type="button" onClick={handleCreate} disabled={step === 'creating'} className="btn-primary py-3">
             {step === 'creating' ? '✨ Generando perfil de cuidados con IA...' : '🌱 Crear ficha de la planta'}

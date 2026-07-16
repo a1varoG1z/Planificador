@@ -14,6 +14,7 @@ export default async function PlantDetailPage({ params }: { params: { id: string
   const [
     { data: careProfile },
     { data: gardens },
+    { data: planters },
     { data: diagnoses },
     { data: recommendations },
     { data: photos },
@@ -21,6 +22,7 @@ export default async function PlantDetailPage({ params }: { params: { id: string
   ] = await Promise.all([
     supabase.from('care_profiles').select('*').eq('plant_id', params.id).maybeSingle(),
     supabase.from('gardens').select('id, name, location').order('name'),
+    supabase.from('planters').select('id, name, garden_id').order('name'),
     supabase.from('diagnoses').select('*').eq('plant_id', params.id).order('created_at', { ascending: false }),
     supabase
       .from('recommendations')
@@ -31,6 +33,12 @@ export default async function PlantDetailPage({ params }: { params: { id: string
     supabase.from('plant_photos').select('*').eq('plant_id', params.id).order('taken_at', { ascending: false }),
     supabase.from('harvests').select('*').eq('plant_id', params.id).order('harvested_at', { ascending: false }),
   ]);
+
+  const currentPlanter = plant.planter_id ? planters?.find((p) => p.id === plant.planter_id) : null;
+  const currentGarden = gardens?.find((g) => g.id === plant.garden_id);
+  const backLink = currentPlanter
+    ? { href: `/planters/${currentPlanter.id}`, label: currentPlanter.name }
+    : { href: `/gardens/${plant.garden_id}`, label: currentGarden?.name ?? 'jardín' };
 
   let heatAlert: HeatAlert | null = null;
   if (careProfile?.heat_alert_threshold_c != null) {
@@ -56,11 +64,13 @@ export default async function PlantDetailPage({ params }: { params: { id: string
       plant={plant}
       careProfile={careProfile ?? null}
       gardens={gardens ?? []}
+      planters={planters ?? []}
       diagnoses={diagnoses ?? []}
       recommendations={recommendations ?? []}
       photos={photos ?? []}
       harvests={harvests ?? []}
       heatAlert={heatAlert}
+      backLink={backLink}
     />
   );
 }

@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { GardenHeader } from '@/components/GardenHeader';
 import { PlantGrid } from '@/components/PlantGrid';
+import { PlanterGrid } from '@/components/PlanterGrid';
+import { CreatePlanterForm } from '@/components/CreatePlanterForm';
 import { ReplantingReminders } from '@/components/ReplantingReminders';
 
 export default async function GardenDetailPage({ params }: { params: { id: string } }) {
@@ -11,7 +13,7 @@ export default async function GardenDetailPage({ params }: { params: { id: strin
   const { data: garden } = await supabase.from('gardens').select('*').eq('id', params.id).single();
   if (!garden) notFound();
 
-  const [{ data: plants }, { data: reminders }] = await Promise.all([
+  const [{ data: plants }, { data: reminders }, { data: planters }] = await Promise.all([
     supabase.from('plants').select('*').eq('garden_id', params.id).order('created_at', { ascending: false }),
     supabase
       .from('replanting_reminders')
@@ -19,10 +21,18 @@ export default async function GardenDetailPage({ params }: { params: { id: strin
       .eq('garden_id', params.id)
       .eq('dismissed', false)
       .order('remind_date', { ascending: true }),
+    supabase.from('planters').select('*').eq('garden_id', params.id).order('created_at', { ascending: true }),
   ]);
 
-  const activePlants = (plants ?? []).filter((p) => p.status === 'active');
-  const inactivePlants = (plants ?? []).filter((p) => p.status === 'inactive');
+  const ungroupedPlants = (plants ?? []).filter((p) => !p.planter_id);
+  const activePlants = ungroupedPlants.filter((p) => p.status === 'active');
+  const inactivePlants = ungroupedPlants.filter((p) => p.status === 'inactive');
+
+  const plantCounts = new Map<string, number>();
+  for (const p of plants ?? []) {
+    if (!p.planter_id) continue;
+    plantCounts.set(p.planter_id, (plantCounts.get(p.planter_id) ?? 0) + 1);
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -34,11 +44,27 @@ export default async function GardenDetailPage({ params }: { params: { id: strin
 
       <ReplantingReminders reminders={reminders ?? []} />
 
-      {activePlants.length === 0 && (
+      {planters && planters.length > 0 && (
+        <section>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-leaf-400">🪴 Jardineras</p>
+          <PlanterGrid planters={planters} plantCounts={plantCounts} />
+        </section>
+      )}
+
+      <CreatePlanterForm gardenId={garden.id} />
+
+      {activePlants.length === 0 && (planters?.length ?? 0) === 0 && (
         <p className="text-sm text-leaf-500">Este jardín todavía no tiene plantas activas.</p>
       )}
 
-      <PlantGrid plants={activePlants} />
+      {activePlants.length > 0 && (
+        <section>
+          {(planters?.length ?? 0) > 0 && (
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-leaf-400">🌱 Plantas sueltas</p>
+          )}
+          <PlantGrid plants={activePlants} />
+        </section>
+      )}
 
       {inactivePlants.length > 0 && (
         <details className="card">

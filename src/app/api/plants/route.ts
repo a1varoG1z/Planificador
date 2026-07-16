@@ -13,6 +13,7 @@ export async function POST(request: Request) {
   const body = await request.json();
   const {
     gardenId,
+    planterId,
     photoUrl,
     photos, // opcional: [{ url, organ }] para guardar el historial de fotos de identificacion
     speciesScientificName,
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
     .from('plants')
     .insert({
       garden_id: gardenId,
+      planter_id: planterId || null,
       nickname: nickname || null,
       species_scientific_name: speciesScientificName,
       species_common_name: speciesCommonName || null,

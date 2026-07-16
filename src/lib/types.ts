@@ -11,9 +11,20 @@ export interface Garden {
   created_at: string;
 }
 
+export interface Planter {
+  id: string;
+  garden_id: string;
+  name: string;
+  description: string | null;
+  photo_url: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface Plant {
   id: string;
   garden_id: string;
+  planter_id: string | null;
   nickname: string | null;
   species_scientific_name: string | null;
   species_common_name: string | null;

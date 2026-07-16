@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { PhotoCapture } from './PhotoCapture';
@@ -17,11 +18,13 @@ interface Props {
   plant: Plant;
   careProfile: CareProfile | null;
   gardens: { id: string; name: string }[];
+  planters: { id: string; name: string; garden_id: string }[];
   diagnoses: Diagnosis[];
   recommendations: Recommendation[];
   photos: PlantPhoto[];
   harvests: Harvest[];
   heatAlert: HeatAlert | null;
+  backLink: { href: string; label: string };
 }
 
 const MONTH_NAMES = [
@@ -41,11 +44,13 @@ export function PlantDetail({
   plant,
   careProfile,
   gardens,
+  planters,
   diagnoses,
   recommendations,
   photos,
   harvests,
   heatAlert,
+  backLink,
 }: Props) {
   const router = useRouter();
   const supabase = createClient();
@@ -55,11 +60,14 @@ export function PlantDetail({
   const [scientificName, setScientificName] = useState(plant.species_scientific_name ?? '');
   const [commonName, setCommonName] = useState(plant.species_common_name ?? '');
   const [gardenId, setGardenId] = useState(plant.garden_id);
+  const [planterId, setPlanterId] = useState(plant.planter_id ?? '');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [diagnosing, setDiagnosing] = useState(false);
   const [diagnosisResult, setDiagnosisResult] = useState<Diagnosis | null>(null);
+
+  const plantersForGarden = planters.filter((p) => p.garden_id === gardenId);
 
   async function saveEdits() {
     setBusy('saving');
@@ -73,6 +81,7 @@ export function PlantDetail({
         species_scientific_name: scientificName || null,
         species_common_name: commonName || null,
         garden_id: gardenId,
+        planter_id: planterId || null,
       })
       .eq('id', plant.id);
 
@@ -122,7 +131,7 @@ export function PlantDetail({
     if (!confirm(`Borrar "${plant.nickname || plant.species_scientific_name}"? Esta accion no se puede deshacer.`))
       return;
     await supabase.from('plants').delete().eq('id', plant.id);
-    router.push(`/gardens/${plant.garden_id}`);
+    router.push(backLink.href);
     router.refresh();
   }
 
@@ -222,6 +231,10 @@ export function PlantDetail({
 
   return (
     <div className="flex flex-col gap-5">
+      <Link href={backLink.href} className="btn-ghost self-start">
+        ← Volver a {backLink.label}
+      </Link>
+
       {plant.photo_url && (
         <img src={plant.photo_url} alt={title} className="h-56 w-full rounded-2xl object-cover shadow-floating" />
       )}
@@ -266,13 +279,32 @@ export function PlantDetail({
           <label className={FIELD_LABEL}>Nombre común</label>
           <input value={commonName} onChange={(e) => setCommonName(e.target.value)} />
           <label className={FIELD_LABEL}>Jardín</label>
-          <select value={gardenId} onChange={(e) => setGardenId(e.target.value)}>
+          <select
+            value={gardenId}
+            onChange={(e) => {
+              setGardenId(e.target.value);
+              setPlanterId('');
+            }}
+          >
             {gardens.map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}
               </option>
             ))}
           </select>
+          {plantersForGarden.length > 0 && (
+            <>
+              <label className={FIELD_LABEL}>Jardinera</label>
+              <select value={planterId} onChange={(e) => setPlanterId(e.target.value)}>
+                <option value="">Sin jardinera (planta suelta)</option>
+                {plantersForGarden.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    🪴 {p.name}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
           <div className="mt-2 flex gap-2">
             <button onClick={saveEdits} disabled={busy === 'saving'} className="btn-primary flex-1">
               {busy === 'saving' ? 'Guardando...' : 'Guardar'}
