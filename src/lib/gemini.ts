@@ -2,25 +2,29 @@ import { GoogleGenerativeAI, SchemaType, type Schema, type Part } from '@google/
 import type { CareProfileDraft } from './types';
 import type { PerenualHints } from './perenual';
 
-const DEFAULT_MODEL = 'gemini-3.5-flash';
+// "gemini-3.5-flash" no es un modelo propio: Google lo redirige al flash mas
+// nuevo que tenga (ahora mismo "gemini-3.6-flash"), asi que comparte su cuota
+// y se agota igual de rapido. "gemini-3.5-flash-lite" si es un modelo real y
+// separado (confirmado en el panel de uso de AI Studio), con su propia cuota
+// diaria normalmente mucho mas generosa: lo usamos como principal.
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
 
 // Candidatos de repuesto conocidos (alias "latest" que Google mantiene apuntando
 // siempre a un modelo valido, mas algunas versiones concretas por si acaso). Si
 // Google retira o renombra alguno, simplemente falla ese intento y se prueba el
 // siguiente: no hace falta mantener esta lista perfecta.
 //
-// Las variantes "lite" van primero: Google las trata como un modelo distinto
-// con su propia cuota diaria (normalmente mas alta que la del "flash" completo),
-// asi que si el "flash" principal se queda sin cuota, un "lite" de la misma
-// generacion u otra suele seguir teniendo peticiones disponibles.
+// Las variantes "lite" van primero: cada una es un modelo distinto con su
+// propia cuota diaria (normalmente mas alta que la del "flash" completo),
+// asi que si una se agota, otra "lite" de otra generacion suele seguir
+// teniendo peticiones disponibles.
 const STATIC_FALLBACK_MODELS = [
-  'gemini-flash-lite-latest',
-  'gemini-3.5-flash-lite',
-  'gemini-3.6-flash-lite',
-  'gemini-flash-latest',
+  'gemini-3.1-flash-lite',
   'gemini-2.5-flash-lite',
-  'gemini-2.5-flash',
   'gemini-2.0-flash-lite',
+  'gemini-flash-lite-latest',
+  'gemini-flash-latest',
+  'gemini-2.5-flash',
   'gemini-2.0-flash',
 ];
 

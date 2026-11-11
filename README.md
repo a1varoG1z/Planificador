@@ -168,15 +168,20 @@ dashboard de Supabase) y entra.
     puede mover entre jardin/jardinera desde su ficha.
 20. **Navegacion**: desde la ficha de cualquier planta hay un boton para volver directamente
     al jardin o jardinera desde el que se llego.
-21. **Modelos de Gemini con repuesto automatico**: si el modelo configurado no responde
-    (cuota gratuita del dia agotada, retirado por Google, caido un momento...), la app
-    prueba sola otros modelos mas baratos/rapidos sin intervencion. Un error puntual (503)
-    reintenta el mismo modelo una vez; cualquier otro fallo (cuota, 404...) pasa
-    directamente al siguiente de la lista. Esa lista combina unos nombres habituales con
-    una consulta en tiempo real a `/api/debug/gemini-models` para saber que modelos admite
-    tu propia clave ahora mismo, asi que sigue funcionando aunque Google cambie los nombres
-    disponibles mas adelante. No requiere tocar nada en Vercel: es logica del codigo, se
-    aplica sola en cuanto se despliega.
+21. **Modelos de Gemini con repuesto automatico**: el modelo principal es una variante
+    "lite" (`gemini-3.5-flash-lite`), que Google trata como un modelo propio con su propia
+    cuota diaria gratuita, normalmente bastante mas alta que la del "flash" completo (los
+    nombres sin "lite", como "gemini-3.5-flash", a veces son solo un alias que Google
+    redirige al modelo mas nuevo que tenga, compartiendo su cuota). Si aun asi no responde
+    (cuota del dia agotada, retirado por Google, caido un momento...), la app prueba sola
+    otros modelos mas baratos/rapidos, priorizando siempre otras variantes "lite" antes que
+    el resto. Un error puntual (503) reintenta el mismo modelo una vez; cualquier otro fallo
+    (cuota, 404...) pasa directamente al siguiente de la lista. Esa lista combina nombres
+    confirmados con una consulta en tiempo real a `/api/debug/gemini-models` para saber que
+    modelos admite tu propia clave ahora mismo, asi que sigue funcionando aunque Google
+    cambie los nombres disponibles mas adelante. Si todos los modelos fallan, el mensaje de
+    error dice cuales se probaron y por que, en vez de un error generico. No requiere tocar
+    nada en Vercel: es logica del codigo, se aplica sola en cuanto se despliega.
 
 ## Posibles mejoras futuras
 
