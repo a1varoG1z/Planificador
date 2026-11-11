@@ -8,13 +8,20 @@ const DEFAULT_MODEL = 'gemini-3.5-flash';
 // siempre a un modelo valido, mas algunas versiones concretas por si acaso). Si
 // Google retira o renombra alguno, simplemente falla ese intento y se prueba el
 // siguiente: no hace falta mantener esta lista perfecta.
+//
+// Las variantes "lite" van primero: Google las trata como un modelo distinto
+// con su propia cuota diaria (normalmente mas alta que la del "flash" completo),
+// asi que si el "flash" principal se queda sin cuota, un "lite" de la misma
+// generacion u otra suele seguir teniendo peticiones disponibles.
 const STATIC_FALLBACK_MODELS = [
-  'gemini-flash-latest',
   'gemini-flash-lite-latest',
-  'gemini-2.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.6-flash-lite',
+  'gemini-flash-latest',
   'gemini-2.5-flash-lite',
-  'gemini-2.0-flash',
+  'gemini-2.5-flash',
   'gemini-2.0-flash-lite',
+  'gemini-2.0-flash',
 ];
 
 let modelListCache: { names: string[]; fetchedAt: number } | null = null;
@@ -45,11 +52,15 @@ async function fetchAvailableModels(): Promise<string[]> {
 async function candidateModels(): Promise<string[]> {
   const primary = process.env.GEMINI_MODEL || DEFAULT_MODEL;
   const dynamic = await fetchAvailableModels();
-  const preferredDynamic = dynamic.filter(
-    (n) => /flash|lite/i.test(n) && !/pro|ultra|embed|aqa|vision|tts|image|audio|thinking/i.test(n)
-  );
-  const ordered = [primary, ...STATIC_FALLBACK_MODELS, ...preferredDynamic, ...dynamic];
-  return Array.from(new Set(ordered));
+  const isUsable = (n: string) => !/pro|ultra|embed|aqa|vision|tts|image|audio|thinking/i.test(n);
+  // Los "lite" confirmados por la propia API key van primero: existen de verdad
+  // para esta cuenta y es el tipo de modelo con mas probabilidad de tener cuota
+  // libre cuando el "flash" completo ya se agoto.
+  const dynamicLite = dynamic.filter((n) => /lite/i.test(n) && isUsable(n));
+  const dynamicFlash = dynamic.filter((n) => /flash/i.test(n) && !dynamicLite.includes(n) && isUsable(n));
+  const ordered = [primary, ...dynamicLite, ...STATIC_FALLBACK_MODELS, ...dynamicFlash, ...dynamic];
+  // Limite de seguridad: no tiene sentido encadenar decenas de intentos en una sola peticion.
+  return Array.from(new Set(ordered)).slice(0, 14);
 }
 
 function isTransientError(message: string): boolean {
@@ -62,12 +73,20 @@ function isTransientError(message: string): boolean {
  * otro fallo (429 cuota agotada, 404 modelo retirado/no disponible para esta
  * key, etc.) pasa directamente al siguiente modelo de la lista, sin esperar.
  */
+function shortReason(message: string): string {
+  if (/429|quota/i.test(message)) return 'cuota agotada';
+  if (/404|not found|no longer available/i.test(message)) return 'no disponible';
+  if (isTransientError(message)) return 'sobrecargado';
+  return message.slice(0, 80);
+}
+
 async function generateWithFallback(schema: Schema | undefined, input: string | (string | Part)[]) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('Falta GEMINI_API_KEY en las variables de entorno');
   const genAI = new GoogleGenerativeAI(apiKey);
   const candidates = await candidateModels();
 
+  const attemptLog: string[] = [];
   let lastErr: unknown;
   for (const modelName of candidates) {
     const model = genAI.getGenerativeModel({
@@ -89,12 +108,17 @@ async function generateWithFallback(schema: Schema | undefined, input: string | 
           await new Promise((resolve) => setTimeout(resolve, 1500));
           continue;
         }
+        attemptLog.push(`${modelName} (${shortReason(message)})`);
         break; // cuota agotada, modelo no encontrado, etc: probar el siguiente modelo
       }
     }
   }
 
-  throw lastErr instanceof Error ? lastErr : new Error('No se pudo generar contenido con ningun modelo de Gemini');
+  console.error(`[gemini] todos los modelos fallaron: ${attemptLog.join(', ')}`);
+  const summary = attemptLog.length
+    ? `Ningun modelo de Gemini disponible ahora mismo. Se probaron ${attemptLog.length}: ${attemptLog.join(', ')}.`
+    : 'No se pudo generar contenido con ningun modelo de Gemini';
+  throw new Error(summary);
 }
 
 function parseJson<T>(text: string): T {
