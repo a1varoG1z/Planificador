@@ -1,38 +1,100 @@
-import { GoogleGenerativeAI, SchemaType, type Schema, type GenerativeModel, type Part } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType, type Schema, type Part } from '@google/generative-ai';
 import type { CareProfileDraft } from './types';
 import type { PerenualHints } from './perenual';
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+const DEFAULT_MODEL = 'gemini-3.5-flash';
 
-function getModel(schema?: Schema) {
+// Candidatos de repuesto conocidos (alias "latest" que Google mantiene apuntando
+// siempre a un modelo valido, mas algunas versiones concretas por si acaso). Si
+// Google retira o renombra alguno, simplemente falla ese intento y se prueba el
+// siguiente: no hace falta mantener esta lista perfecta.
+const STATIC_FALLBACK_MODELS = [
+  'gemini-flash-latest',
+  'gemini-flash-lite-latest',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+];
+
+let modelListCache: { names: string[]; fetchedAt: number } | null = null;
+const MODEL_LIST_TTL_MS = 15 * 60 * 1000;
+
+/** Consulta a Google que modelos admite de verdad esta API key ahora mismo (se cachea un rato). */
+async function fetchAvailableModels(): Promise<string[]> {
+  if (modelListCache && Date.now() - modelListCache.fetchedAt < MODEL_LIST_TTL_MS) {
+    return modelListCache.names;
+  }
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('Falta GEMINI_API_KEY en las variables de entorno');
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({
-    model: MODEL,
-    generationConfig: schema ? { responseMimeType: 'application/json', responseSchema: schema } : undefined,
-  });
+  if (!apiKey) return [];
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const names: string[] = (data.models ?? [])
+      .filter((m: { supportedGenerationMethods?: string[] }) => m.supportedGenerationMethods?.includes('generateContent'))
+      .map((m: { name: string }) => m.name.replace('models/', ''));
+    modelListCache = { names, fetchedAt: Date.now() };
+    return names;
+  } catch {
+    return [];
+  }
+}
+
+/** Orden de modelos a probar: el configurado primero, luego alternativas baratas/rapidas. */
+async function candidateModels(): Promise<string[]> {
+  const primary = process.env.GEMINI_MODEL || DEFAULT_MODEL;
+  const dynamic = await fetchAvailableModels();
+  const preferredDynamic = dynamic.filter(
+    (n) => /flash|lite/i.test(n) && !/pro|ultra|embed|aqa|vision|tts|image|audio|thinking/i.test(n)
+  );
+  const ordered = [primary, ...STATIC_FALLBACK_MODELS, ...preferredDynamic, ...dynamic];
+  return Array.from(new Set(ordered));
+}
+
+function isTransientError(message: string): boolean {
+  return /503|overloaded|high demand|UNAVAILABLE/i.test(message);
 }
 
 /**
- * Google devuelve 503 "high demand" o 429 con bastante frecuencia en modelos
- * nuevos/gratuitos; suelen ser picos temporales, asi que reintentamos un par
- * de veces con espera creciente antes de rendirnos.
+ * Genera contenido probando una lista de modelos en orden. Un error transitorio
+ * (503, sobrecarga puntual) se reintenta una vez en el mismo modelo; cualquier
+ * otro fallo (429 cuota agotada, 404 modelo retirado/no disponible para esta
+ * key, etc.) pasa directamente al siguiente modelo de la lista, sin esperar.
  */
-async function generateContentWithRetry(model: GenerativeModel, input: string | (string | Part)[], attempts = 3) {
+async function generateWithFallback(schema: Schema | undefined, input: string | (string | Part)[]) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('Falta GEMINI_API_KEY en las variables de entorno');
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const candidates = await candidateModels();
+
   let lastErr: unknown;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      return await model.generateContent(input);
-    } catch (err) {
-      lastErr = err;
-      const message = err instanceof Error ? err.message : String(err);
-      const transient = /503|overloaded|high demand|429|rate.?limit|UNAVAILABLE/i.test(message);
-      if (!transient || i === attempts - 1) throw err;
-      await new Promise((resolve) => setTimeout(resolve, 1500 * (i + 1)));
+  for (const modelName of candidates) {
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: schema ? { responseMimeType: 'application/json', responseSchema: schema } : undefined,
+    });
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const result = await model.generateContent(input);
+        if (modelName !== candidates[0]) {
+          console.warn(`[gemini] usando modelo de repuesto "${modelName}" (el principal no respondio)`);
+        }
+        return result;
+      } catch (err) {
+        lastErr = err;
+        const message = err instanceof Error ? err.message : String(err);
+        if (isTransientError(message) && attempt === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          continue;
+        }
+        break; // cuota agotada, modelo no encontrado, etc: probar el siguiente modelo
+      }
     }
   }
-  throw lastErr;
+
+  throw lastErr instanceof Error ? lastErr : new Error('No se pudo generar contenido con ningun modelo de Gemini');
 }
 
 function parseJson<T>(text: string): T {
@@ -120,8 +182,6 @@ export async function generateCareProfile(
   hints: PerenualHints | null,
   location: string
 ): Promise<CareProfileDraft> {
-  const model = getModel(CARE_PROFILE_SCHEMA);
-
   const hintsBlock = hints
     ? `Datos de referencia de Perenual (usalos como apoyo, pero prioriza tu conocimiento botanico si detectas algo incorrecto):
 ${JSON.stringify(hints, null, 2)}`
@@ -156,7 +216,7 @@ Instrucciones para cada campo:
 - heat_alert_threshold_c: numero entero de grados Celsius a partir del cual esta planta necesita riego extra si hace mucho calor y el sustrato lleva tiempo sin regarse (tipico 28-32 para plantas de necesidad de agua media/alta, como la mayoria de hortalizas o plantas de hoja). Si esta planta es resistente al calor y la sequia (cactus, suculentas, plantas mediterraneas de bajo riego como lavanda o romero), pon null: no necesita este aviso.
 - Todos los textos en espanol, tono cercano y practico, 1-3 frases por campo de notas.`;
 
-  const result = await generateContentWithRetry(model, prompt);
+  const result = await generateWithFallback(CARE_PROFILE_SCHEMA, prompt);
   return parseJson<CareProfileDraft>(result.response.text());
 }
 
@@ -168,8 +228,6 @@ export async function generateRecommendations(input: {
   missedFertilizings: number;
   location: string;
 }): Promise<string[]> {
-  const model = getModel(RECOMMENDATIONS_SCHEMA);
-
   const prompt = `Eres un jardinero experto. Basandote en esta planta y su historial reciente, propon entre 3 y 5 recomendaciones de mejora CONCRETAS y accionables, en espanol, para que crezca mas sana y bonita.
 
 Especie: ${input.scientificName} (${input.commonName ?? 'sin nombre comun'})
@@ -180,20 +238,18 @@ Abonados recientes que se han retrasado respecto a lo recomendado: ${input.misse
 
 Ten en cuenta el clima de "${input.location}" (heladas, epoca del ano) si es relevante. Cada recomendacion debe ser breve (1-2 frases), especifica para esta planta, no generica.`;
 
-  const result = await generateContentWithRetry(model, prompt);
+  const result = await generateWithFallback(RECOMMENDATIONS_SCHEMA, prompt);
   const parsed = parseJson<{ recommendations: string[] }>(result.response.text());
   return parsed.recommendations ?? [];
 }
 
 export async function generateQuickInfo(scientificName: string, commonName: string | null): Promise<string> {
-  const model = getModel();
-
   const prompt = `Eres un experto en botanica. En espanol, escribe un texto breve (3-4 frases) sobre esta planta encontrada en la naturaleza, pensado para alguien que la acaba de fotografiar en un paseo: donde suele crecer, epoca de floracion si tiene, y algun dato curioso. No repitas el nombre cientifico en el texto mas de una vez.
 
 Nombre cientifico: ${scientificName}
 Nombre comun: ${commonName ?? 'desconocido'}`;
 
-  const result = await generateContentWithRetry(model, prompt);
+  const result = await generateWithFallback(undefined, prompt);
   return result.response.text().trim();
 }
 
@@ -203,8 +259,6 @@ export async function generateRemedies(input: {
   cause: string | null;
   plantnitTreatment: { biological: string[]; chemical: string[]; prevention: string[] };
 }): Promise<{ commercial: string; home: string }> {
-  const model = getModel(REMEDIES_SCHEMA);
-
   const prompt = `Eres un experto en fitopatologia domestica. Un usuario ha detectado este problema en una planta:
 
 Problema: ${input.diseaseName}
@@ -218,7 +272,7 @@ Redacta en espanol dos listas breves de remedios:
 
 Cada campo es un texto corrido de 2-4 frases, practico y en espanol.`;
 
-  const result = await generateContentWithRetry(model, prompt);
+  const result = await generateWithFallback(REMEDIES_SCHEMA, prompt);
   return parseJson<{ commercial: string; home: string }>(result.response.text());
 }
 
@@ -234,8 +288,6 @@ export interface AiDiagnosis {
  * Se usa como respaldo cuando Plant.id no esta disponible o se han agotado sus creditos.
  */
 export async function diagnoseWithGemini(base64Image: string, mimeType = 'image/jpeg'): Promise<AiDiagnosis> {
-  const model = getModel(AI_DIAGNOSIS_SCHEMA);
-
   const prompt = `Eres un experto en fitopatologia. Observa la foto de esta planta y evalua su estado de salud.
 
 - isHealthy: true si no ves signos claros de plaga, enfermedad o carencia; false si detectas algo (manchas, hojas amarillas/marchitas, insectos, moho, etc.).
@@ -243,7 +295,10 @@ export async function diagnoseWithGemini(base64Image: string, mimeType = 'image/
 - remediesCommercial: SOLO si isHealthy es false, productos comerciales tipicos para tratarlo (fungicida, insecticida, jabon potasico...) con como aplicarlos, en espanol, 2-4 frases. Si isHealthy es true, deja null.
 - remediesHome: SOLO si isHealthy es false, remedios caseros (agua con jabon, aceite de neem, bicarbonato...) con proporciones aproximadas, en espanol, 2-4 frases. Si isHealthy es true, deja null.`;
 
-  const result = await generateContentWithRetry(model, [{ inlineData: { data: base64Image, mimeType } }, { text: prompt }]);
+  const result = await generateWithFallback(AI_DIAGNOSIS_SCHEMA, [
+    { inlineData: { data: base64Image, mimeType } },
+    { text: prompt },
+  ]);
 
   return parseJson<AiDiagnosis>(result.response.text());
 }

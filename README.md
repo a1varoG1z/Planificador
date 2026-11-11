@@ -168,6 +168,15 @@ dashboard de Supabase) y entra.
     puede mover entre jardin/jardinera desde su ficha.
 20. **Navegacion**: desde la ficha de cualquier planta hay un boton para volver directamente
     al jardin o jardinera desde el que se llego.
+21. **Modelos de Gemini con repuesto automatico**: si el modelo configurado no responde
+    (cuota gratuita del dia agotada, retirado por Google, caido un momento...), la app
+    prueba sola otros modelos mas baratos/rapidos sin intervencion. Un error puntual (503)
+    reintenta el mismo modelo una vez; cualquier otro fallo (cuota, 404...) pasa
+    directamente al siguiente de la lista. Esa lista combina unos nombres habituales con
+    una consulta en tiempo real a `/api/debug/gemini-models` para saber que modelos admite
+    tu propia clave ahora mismo, asi que sigue funcionando aunque Google cambie los nombres
+    disponibles mas adelante. No requiere tocar nada en Vercel: es logica del codigo, se
+    aplica sola en cuanto se despliega.
 
 ## Posibles mejoras futuras
 
