@@ -168,7 +168,12 @@ dashboard de Supabase) y entra.
     puede mover entre jardin/jardinera desde su ficha.
 20. **Navegacion**: desde la ficha de cualquier planta hay un boton para volver directamente
     al jardin o jardinera desde el que se llego.
-21. **Modelos de Gemini con repuesto automatico**: el modelo principal es una variante
+21. **Incorporar plantas sueltas a una jardinera**: en la pantalla de un jardin, cada planta
+    suelta (sin jardinera, aunque ya tenga foto y perfil generados por separado) tiene un
+    selector rapido "🪴 Añadir a jardinera..." para meterla en una jardinera existente sin
+    tener que entrar a editar su ficha. Tambien se puede seguir haciendo desde la ficha de la
+    planta (boton "Editar").
+22. **Modelos de Gemini con repuesto automatico**: el modelo principal es una variante
     "lite" (`gemini-3.5-flash-lite`), que Google trata como un modelo propio con su propia
     cuota diaria gratuita, normalmente bastante mas alta que la del "flash" completo (los
     nombres sin "lite", como "gemini-3.5-flash", a veces son solo un alias que Google

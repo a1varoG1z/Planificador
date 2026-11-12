@@ -62,7 +62,7 @@ export default async function GardenDetailPage({ params }: { params: { id: strin
           {(planters?.length ?? 0) > 0 && (
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-leaf-400">🌱 Plantas sueltas</p>
           )}
-          <PlantGrid plants={activePlants} />
+          <PlantGrid plants={activePlants} planters={planters ?? []} />
         </section>
       )}
 
